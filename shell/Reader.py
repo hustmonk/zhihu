@@ -75,7 +75,7 @@ class Reader(object):
         # Update parameters
         self.optimizer.step()
         self.updates += 1
-        return loss.data.item()
+        return loss.data.item(), len(ids)
 
     # --------------------------------------------------------------------------
     # Prediction
