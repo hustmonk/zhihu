@@ -81,18 +81,17 @@ class Reader(object):
     # Prediction
     # --------------------------------------------------------------------------
 
-    def predict(self, ex):
+    def predict(self, inputs):
         # Eval mode
         self.pretraindatalayers.eval()
         self.network.eval()
 
         # Run forward
-        ids, inputs, targets = ex
         inputs = self.pretraindatalayers(inputs)
 
         # Run forward
         scores = self.network(inputs)
-        return numpy.argmax(scores.numpy())
+        return torch.max(scores, -1)[1].numpy().tolist()
 
     def save(self, filename, epoch):
         params = {

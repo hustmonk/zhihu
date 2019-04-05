@@ -15,16 +15,17 @@ def train(args, data_loader, model, global_stats):
     for idx, ex in enumerate(data_loader):
         global iter_counter
         iter_counter += 1
-        lr = args.learning_rate
 
         train_loss.update(*model.update(ex))
 
         if idx % args.display_iter == 0:
-            logger.info('train: Epoch = %d | iter = %d/%d | iter = %d | lr = %f |' %
-                        (global_stats['epoch'], idx, len(data_loader), iter_counter, lr) +
+            logger.info('train: Epoch = %d | iter = %d/%d | iter = %d |' %
+                        (global_stats['epoch'], idx, len(data_loader), iter_counter) +
                         'loss = %.2f | elapsed time = %.2f (s)' %
                         (train_loss.avg, global_stats['timer'].time()))
             train_loss.reset()
+            if torch.cuda.is_available() == False:
+                break
 
     logger.info('train: Epoch %d done. Time for epoch = %.2f (s)' %
                 (global_stats['epoch'], epoch_time.time()))
@@ -39,9 +40,11 @@ def validate(args, data_loader, model, epoch):
         ids, inputs, target = ex
         pred = model.predict(inputs)
         preds += pred
-        targets += target
+        targets += target.numpy().tolist()
+        if torch.cuda.is_available() == False:
+            break
 
-    right = sum([1 for (p, t) in zip(preds, targets) if p == t])
+    right = 1.0 * sum([1 for (p, t) in zip(preds, targets) if p == t]) / len(preds)
 
     logger.info('dev: Epoch = %d | precision = %.4f | examples = %d | valid time = %.2f (s)' %
                 (epoch, right, len(targets), eval_time.time()))
@@ -128,13 +131,12 @@ if __name__ == "__main__":
 
         model.set_training(False)
 
-
         result = validate(args, dev_loader, model, stats['epoch'])
 
         if result > stats['best_valid']:
             logger.info('Best valid: %.4f -> %.4f (epoch %d, %d updates)' %
                         (stats['best_valid'], result,
                          stats['epoch'], model.updates))
-            model.save(args.model_file_ema)
+            model.save(args.model_file, epoch)
             stats['best_valid'] = result
 

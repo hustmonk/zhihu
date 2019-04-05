@@ -37,7 +37,8 @@ def initargs():
                          help='Batch size for training')
     runtime.add_argument('--test-batch-size', type=int, default=128,
                          help='Batch size during validation/testing')
-
+    runtime.add_argument('--display-iter', type=int, default=10,
+                         help='Batch size during validation/testing')
     # Files
     files = parser.add_argument_group('Filesystem')
     files.add_argument('--model-dir', type=str, default="models/",
