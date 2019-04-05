@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-
+from shell import mlstm
 import logging
 
 logger = logging.getLogger(__name__)
@@ -20,28 +20,31 @@ class PretrainedDataLayers(nn.Module):
 
         # Word embeddings (+1 for padding)
         self.embedding = nn.Embedding(len(word_dict),
-                                      self.model_args.embedding_dim,
+                                      self.model_args.glove_embedding_dim,
                                       padding_idx=0)
 
         self.load_embeddings(word_dict, args.embedding_file)
-
+        self.mlstm = mlstm.MTLSTM(args)
+        self.mlstm.load_cove(args.cove_file)
         for p in self.parameters():
             p.requires_grad = False
 
-    def embed_dropout(self, x):
-        x = self.embedding(x)
-        x = nn.functional.dropout(x, p = 0.2, training=self.training)
+    def embed_dropout(self, x, x_mask):
+        emb = self.embedding(x)
+        cove = self.mlstm(emb, x_mask)
+        x = torch.cat([emb, cove[-1]], -1)
+        x = nn.functional.dropout(x, p=0.2, training=self.training)
         return x
 
     def forward(self, inputs):
         passage, passage_mask, question, question_mask, questioninfo, questioninfo_mask, \
         answer1, answer1_mask, answer2, answer2_mask = inputs
 
-        passage = self.embed_dropout(passage)
-        question = self.embed_dropout(question)
-        questioninfo = self.embed_dropout(questioninfo)
-        answer1 = self.embed_dropout(answer1)
-        answer2 = self.embed_dropout(answer2)
+        passage = self.embed_dropout(passage, passage_mask)
+        question = self.embed_dropout(question, question_mask)
+        questioninfo = self.embed_dropout(questioninfo, questioninfo_mask)
+        answer1 = self.embed_dropout(answer1, answer1_mask)
+        answer2 = self.embed_dropout(answer2, answer2_mask)
 
         return [passage, passage_mask, question, question_mask, questioninfo, questioninfo_mask,
          answer1, answer1_mask, answer2, answer2_mask]

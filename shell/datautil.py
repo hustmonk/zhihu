@@ -7,8 +7,8 @@ import unicodedata
 import nltk
 
 def tokenize(sentence):
-    text = nltk.word_tokenize(sentence)
-    return " ".join(text)
+    sentence = " ".join(nltk.word_tokenize(sentence))
+    return sentence
 
 def loadxml(filename):
     root = ET.parse(filename).getroot()

@@ -70,7 +70,8 @@ def initargs():
                        default=WORK_SPACE + '/data/glove.840B.300d.txt',
                        help='Space-separated pretrained embeddings file')
 
-    pretrainedfiles.add_argument('--embedding-dim', type=int, default= 300)
+    pretrainedfiles.add_argument('--glove-embedding-dim', type=int, default= 300)
+    pretrainedfiles.add_argument('--embedding-dim', type=int, default= 900)
 
     pretrainedfiles.add_argument('--cove-file', type=str,
                        default=WORK_SPACE + '/data/wmtlstm-b142a7f2.pth',
