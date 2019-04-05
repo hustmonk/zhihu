@@ -109,7 +109,8 @@ def build_word_dict(examples):
     """
     word_dict = Dictionary()
     for ex in examples:
-        questionid, scenario, passage, questiontext, answers, questioninfo, label = ex
-        for w in passage + questioninfo:
+        questionid, scenario, passage, questiontext, answer1, answer2, label = ex
+        info = passage + " " + answer1 + " " + answer2 + " " + questiontext
+        for w in info.split(" "):
             word_dict.add(w)
     return word_dict
