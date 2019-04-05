@@ -79,11 +79,10 @@ if __name__ == "__main__":
     else:
         logger.info('Training model from scratch...')
         model = Reader(args)
+    model.load_pretrained_dict(args, word_dict)
 
     if args.cuda:
         model.cuda()
-
-    model.load_pretrained_dict(args, word_dict)
 
     logger.info('=' * 60)
     psum = 0
