@@ -30,12 +30,12 @@ class PretrainedDataLayers(nn.Module):
 
     def embed_dropout(self, x):
         x = self.embedding(x)
-        x = nn.functional.dropout(x, p=0.3, training=self.training)
+        x = nn.functional.dropout(x, p = 0.2, training=self.training)
         return x
 
     def forward(self, inputs):
-        [passage, passage_mask, question, question_mask, questioninfo, questioninfo_mask,
-         answer1, answer1_mask, answer2, answer2_mask] = inputs
+        passage, passage_mask, question, question_mask, questioninfo, questioninfo_mask, \
+        answer1, answer1_mask, answer2, answer2_mask = inputs
 
         passage = self.embed_dropout(passage)
         question = self.embed_dropout(question)

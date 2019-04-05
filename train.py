@@ -23,7 +23,7 @@ def train(args, data_loader, model, global_stats):
         if idx % args.display_iter == 0:
             logger.info('train: Epoch = %d | iter = %d/%d | iter = %d |' %
                         (global_stats['epoch'], idx, len(data_loader), iter_counter) +
-                        'loss = %.2f | elapsed time = %.2f (s)' %
+                        'loss = %.4f | elapsed time = %.2f (s)' %
                         (train_loss.avg, global_stats['timer'].time()))
             train_loss.reset()
             if torch.cuda.is_available() == False:

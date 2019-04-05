@@ -34,9 +34,7 @@ class Reader(object):
 
         parameters = [p for p in self.network.parameters() if p.requires_grad]
 
-        self.optimizer = optim.Adamax(parameters,
-                                      lr=self.args.learning_rate,
-                                      weight_decay=self.args.weight_decay)
+        self.optimizer = optim.Adamax(parameters)
 
     def set_training(self, training = False):
         self.training = training

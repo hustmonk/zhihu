@@ -16,14 +16,14 @@ def loadxml(filename):
             questionid = question.attrib["id"]
             questiontext = question.attrib["text"]
             answers = []
-            questioninfo = questiontext
             label = 0
             for (i, answer) in enumerate(question):
                 answers.append(answer.attrib["text"])
-                questioninfo = questioninfo + " " + answer.attrib["text"]
                 if i == 1 and answer.attrib["correct"] == "True":
                     label = 1
-            data = [questionid, scenario, passage, questiontext, answers, questioninfo, label]
+            answer1 = answers[0]
+            answer2 = answers[1]
+            data = [questionid, scenario, passage, questiontext, answer1, answer2, label]
             dataset.append(data)
     return dataset
 
