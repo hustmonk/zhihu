@@ -34,7 +34,7 @@ class Reader(object):
 
         parameters = [p for p in self.network.parameters() if p.requires_grad]
 
-        self.optimizer = optim.Adamax(parameters)
+        self.optimizer = torch.optim.Adam(parameters)
 
     def set_training(self, training = False):
         self.training = training

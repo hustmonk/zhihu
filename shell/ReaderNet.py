@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import logging
 from shell import layers
+import torch.nn.functional as F
 
 logger = logging.getLogger(__name__)
 
@@ -23,9 +24,10 @@ class ReaderNet(nn.Module):
         self.passage_lstm2 = layers.StackedBRNN(input_size=args.hidden_size * 3 * 2, hidden_size=args.hidden_size)
         self.answer_lstm2 = layers.StackedBRNN(input_size=args.hidden_size * 2 * 2, hidden_size=args.hidden_size)
 
-        self.self_attn = layers.LinearSeqAttn(args.hidden_size * 2)
+        self.self_attn1 = layers.LinearSeqAttn(args.hidden_size * 2)
+        self.self_attn2 = layers.LinearSeqAttn(args.hidden_size * 2)
 
-        self.linear = layers.LinearScore(args.hidden_size * 2)
+        self.linear = nn.Linear(args.hidden_size * 2, args.hidden_size * 2)
 
     def forward(self, inputs):
         passage, passage_mask, question, question_mask, questioninfo, questioninfo_mask, \
@@ -48,9 +50,14 @@ class ReaderNet(nn.Module):
         answer1 = self.answer_lstm2(torch.cat([answer1, match3], -1), answer1_mask)
         answer2 = self.answer_lstm2(torch.cat([answer2, match4], -1), answer2_mask)
 
-        answer1 = self.self_attn(answer1, answer1_mask).unsqueeze(1)
-        answer2 = self.self_attn(answer2, answer2_mask).unsqueeze(1)
+        answer1 = self.self_attn1(answer1, answer1_mask).unsqueeze(1)
+        answer2 = self.self_attn1(answer2, answer2_mask).unsqueeze(1)
+        passage = self.self_attn2(passage, passage_mask)
 
         answer = torch.cat([answer1, answer2], 1)
+
         answer = self.linear(answer)
+        answer = answer.bmm(passage.unsqueeze(2)).squeeze(2)
+        answer = F.log_softmax(answer, dim=-1)
+
         return answer
