@@ -104,7 +104,7 @@ if __name__ == "__main__":
     )
 
     dev_loader = torch.utils.data.DataLoader(
-        train_dataset,
+        dev_dataset,
         batch_size=args.test_batch_size,
         num_workers=2,
         collate_fn=vector.batchify,
