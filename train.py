@@ -66,6 +66,7 @@ if __name__ == "__main__":
     train_exs = loadxml(os.path.join(args.data_dir, args.train_file))
     dev_exs = loadxml(os.path.join(args.data_dir, args.dev_file))
 
+    logger.info("train:%d dev:%d" % (len(train_exs), len(dev_exs)))
     # --------------------------------------------------------------------------
     # MODEL
     logger.info('-' * 100)
@@ -88,7 +89,6 @@ if __name__ == "__main__":
     psum = 0
     for (name, p) in model.network.named_parameters():
         psum += p.nelement()
-        logger.info(name + "\t" + str(p.nelement()) + "\t" + str(p.requires_grad))
     logger.info('Network total parameters ' + str(psum))
     logger.info('=' * 60)
 
@@ -105,7 +105,7 @@ if __name__ == "__main__":
 
     dev_loader = torch.utils.data.DataLoader(
         train_dataset,
-        batch_size=args.batch_size,
+        batch_size=args.test_batch_size,
         num_workers=2,
         collate_fn=vector.batchify,
         pin_memory=args.cuda,

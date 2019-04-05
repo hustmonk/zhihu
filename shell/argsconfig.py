@@ -1,7 +1,7 @@
 import argparse
 import argparse
 import logging
-import os
+import os, sys
 import subprocess
 logger = logging.getLogger(__name__)
 from pathlib import PosixPath
@@ -34,7 +34,7 @@ def initargs():
     runtime.add_argument('--random-seed', type=int, default=1013,
                          help=('Random seed for all numpy/torch/cuda '
                                'operations (for reproducibility)'))
-    runtime.add_argument('--num-epochs', type=int, default=80,
+    runtime.add_argument('--num-epochs', type=int, default=30,
                          help='Train data iterations')
     runtime.add_argument('--batch-size', type=int, default=32,
                          help='Batch size for training')
@@ -124,4 +124,14 @@ def setlogger(log_file=None, checkpoint=False):
             logfile = logging.FileHandler(log_file, 'w')
         logfile.setFormatter(fmt)
         logger.addHandler(logfile)
+
+    try:
+        GIT_BRANCH = subprocess.check_output(['git', 'symbolic-ref', '--short', 'HEAD'])
+        GIT_REVISION = subprocess.check_output(['git', 'rev-parse', 'HEAD'])
+    except:
+        GIT_BRANCH = "Unknown"
+        GIT_REVISION = "Unknown"
+
+    logger.info('COMMAND: [ nohup python %s & ], GIT_REVISION: [%s] [%s]'
+                % (' '.join(sys.argv), GIT_BRANCH.strip(), GIT_REVISION.strip()))
     return logger

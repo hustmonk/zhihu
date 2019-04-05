@@ -1,4 +1,4 @@
-import torch, numpy
+import torch, numpy, random
 def vectorize(ex, model):
     questionid, scenario, passage, questiontext, answer1, answer2, label = ex
     word_dict = model.word_dict
@@ -6,11 +6,11 @@ def vectorize(ex, model):
     question = torch.LongTensor([word_dict[w] for w in questiontext.split(" ")])
     answer1 = torch.LongTensor([word_dict[w] for w in answer1.split(" ")])
     answer2 = torch.LongTensor([word_dict[w] for w in answer2.split(" ")])
-
-    if numpy.random.random() > 0.5:
-        questioninfo = torch.cat([question, answer1, answer2], -1)
-    else:
-        questioninfo = torch.cat([question, answer2, answer1], -1)
+    blank = torch.LongTensor([word_dict['.']])
+    k = [answer1, answer2]
+    random.shuffle(k)
+    k = [question, k[0], blank, k[1], blank]
+    questioninfo = torch.cat(k, -1)
 
     qanswer1 = torch.cat([question, answer1], -1)
     qanswer2 = torch.cat([question, answer2], -1)

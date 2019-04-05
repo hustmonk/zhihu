@@ -28,6 +28,9 @@ def loadxml(filename):
                     label = 1
             answer1 = tokenize(answers[0])
             answer2 = tokenize(answers[1])
+            #print("Q:" + questiontext)
+            #print("A1:" + answer1)
+            #print("A2:" + answer2)
             data = [questionid, scenario, passage, questiontext, answer1, answer2, label]
             dataset.append(data)
     return dataset
