@@ -96,7 +96,7 @@ if __name__ == "__main__":
     dev_dataset = ReaderDataset(train_exs, model)
     train_loader = torch.utils.data.DataLoader(
         train_dataset,
-        batch_size = 12,
+        batch_size = args.batch_size,
         shuffle = True,
         num_workers=2,
         collate_fn=vector.batchify,
@@ -105,7 +105,7 @@ if __name__ == "__main__":
 
     dev_loader = torch.utils.data.DataLoader(
         train_dataset,
-        batch_size=12,
+        batch_size=args.batch_size,
         num_workers=2,
         collate_fn=vector.batchify,
         pin_memory=args.cuda,

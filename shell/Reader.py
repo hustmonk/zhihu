@@ -110,7 +110,7 @@ class Reader(object):
 
         # Run forward
         scores = self.network(inputs)
-        return torch.max(scores, -1)[1].numpy().tolist()
+        return torch.max(scores, -1)[1].data.cpu().numpy().tolist()
 
     def save(self, filename, epoch):
         params = {
