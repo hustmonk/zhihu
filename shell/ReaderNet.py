@@ -15,7 +15,7 @@ class ReaderNet(nn.Module):
         #first layer
         self.question_match1 = layers.SeqAttnMatch(args.embedding_dim)
         self.questioninfo_match1 = layers.SeqAttnMatch(args.embedding_dim)
-        self.passage_lstm1 = layers.StackedBRNN(input_size=args.embedding_dim * 3, hidden_size=args.hidden_size)
+        self.passage_lstm1 = layers.StackedBRNN(input_size=args.embedding_dim, hidden_size=args.hidden_size)
         self.question_lstm1 = layers.StackedBRNN(input_size=args.embedding_dim, hidden_size=args.hidden_size)
         self.questioninfo_lstm1 = layers.StackedBRNN(input_size=args.embedding_dim, hidden_size=args.hidden_size)
 
@@ -42,7 +42,8 @@ class ReaderNet(nn.Module):
         #first layer
         match1 = self.question_match1(passage, question, question_mask)
         match2 = self.questioninfo_match1(passage, questioninfo, questioninfo_mask)
-        passage1 = self.passage_lstm1(torch.cat([passage, match1, match2], -1), passage_mask)
+        passage0 = passage * 0.8 + match1 * 0.1 + match2 * 0.1
+        passage1 = self.passage_lstm1(passage0, passage_mask)
         question1 = self.question_lstm1(question, question_mask)
         questioninfo1 = self.questioninfo_lstm1(questioninfo, questioninfo_mask)
 
