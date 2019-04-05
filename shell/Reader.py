@@ -7,6 +7,8 @@ import torch.optim as optim
 from .ReaderNet import ReaderNet
 from .pretraineddatalayers import PretrainedDataLayers
 import numpy
+from torch.autograd import Variable
+
 logger = logging.getLogger(__name__)
 
 class Reader(object):
@@ -23,6 +25,8 @@ class Reader(object):
         self.network = ReaderNet(args)
         self.updates = updates
         self.training = False
+        self.use_cuda = False
+
         if state_dict:
             self.network.load_state_dict(state_dict)
 
@@ -49,6 +53,17 @@ class Reader(object):
     # --------------------------------------------------------------------------
 
     def update(self, ex):
+        ids, inputs, targets = ex
+
+        if self.use_cuda:
+            inputs = [e if e is None or torch.is_tensor(e) == False else Variable(e.cuda(async=True))
+                      for e in inputs]
+            targets = Variable(targets.cuda(async=True))
+
+        else:
+            inputs = [e if e is None or torch.is_tensor(e) == False else Variable(e) for e in inputs]
+            targets = Variable(targets)
+
         """Forward a batch of examples; step the optimizer to update weights."""
         if not self.optimizer:
             raise RuntimeError('No optimizer set.')
@@ -57,7 +72,6 @@ class Reader(object):
         self.pretraindatalayers.train()
         self.network.train()
 
-        ids, inputs, targets = ex
         inputs = self.pretraindatalayers(inputs)
 
         # Run forward
@@ -82,6 +96,11 @@ class Reader(object):
     # --------------------------------------------------------------------------
 
     def predict(self, inputs):
+        if self.use_cuda:
+            inputs = [e if e is None or torch.is_tensor(e) == False else Variable(e.cuda(async=True))
+                      for e in inputs]
+        else:
+            inputs = [e if e is None or torch.is_tensor(e) == False else Variable(e) for e in inputs]
         # Eval mode
         self.pretraindatalayers.eval()
         self.network.eval()
@@ -124,10 +143,12 @@ class Reader(object):
 
     def cuda(self):
         self.use_cuda = True
+        self.pretraindatalayers = self.pretraindatalayers.cuda()
         self.network = self.network.cuda()
 
     def cpu(self):
         self.use_cuda = False
+        self.pretraindatalayers = self.pretraindatalayers.cpu()
         self.network = self.network.cpu()
 
     def parallelize(self):
