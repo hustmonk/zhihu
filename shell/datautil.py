@@ -25,7 +25,6 @@ def loadxml(filename):
                     label = 1
             data = [questionid, scenario, passage, questiontext, answers, questioninfo, label]
             dataset.append(data)
-        print(id, passage)
     return dataset
 
 class ReaderDataset(Dataset):

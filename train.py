@@ -4,7 +4,9 @@ from shell.Reader import Reader
 from shell import utils
 from shell import vector
 import torch, json
+
 iter_counter = 0
+
 def train(args, data_loader, model, global_stats):
     """Run through one epoch of model training with the provided data loader."""
     # Initialize meters + timers

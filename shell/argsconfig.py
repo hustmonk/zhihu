@@ -4,11 +4,14 @@ import logging
 import os
 import subprocess
 logger = logging.getLogger(__name__)
+from pathlib import PosixPath
 
 def str2bool(v):
     return v.lower() in ('yes', 'true', 't', '1', 'y')
 
 def initargs():
+    WORK_SPACE = PosixPath(__file__).absolute().parents[1].as_posix()
+
     parser = argparse.ArgumentParser(
         'Document Reader', formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
@@ -41,11 +44,11 @@ def initargs():
                          help='Batch size during validation/testing')
     # Files
     files = parser.add_argument_group('Filesystem')
-    files.add_argument('--model-dir', type=str, default="models/",
+    files.add_argument('--model-dir', type=str, default=WORK_SPACE + "/models/",
                        help='Directory for saved models/checkpoints/logs')
     files.add_argument('--model-name', type=str, default='',
                        help='Unique model identifier (.mdl, .txt, .checkpoint)')
-    files.add_argument('--data-dir', type=str, default="../data/",
+    files.add_argument('--data-dir', type=str, default=WORK_SPACE + "/data/",
                        help='Directory of training/validation data')
     files.add_argument('--train-file', type=str,
                        default='train-data.xml', help='train file')
@@ -64,13 +67,13 @@ def initargs():
     pretrainedfiles = parser.add_argument_group('Pretrained File')
 
     pretrainedfiles.add_argument('--embedding-file', type=str,
-                       default='../data/glove.840B.300d.txt',
+                       default=WORK_SPACE + '/data/glove.840B.300d.txt',
                        help='Space-separated pretrained embeddings file')
 
     pretrainedfiles.add_argument('--embedding-dim', type=int, default= 300)
 
     pretrainedfiles.add_argument('--cove-file', type=str,
-                       default='embeddings/wmtlstm-b142a7f2.pth',
+                       default=WORK_SPACE + '/data/wmtlstm-b142a7f2.pth',
                        help='Space-separated pretrained cove file')
 
     model = parser.add_argument_group('Reader Model Architecture')
