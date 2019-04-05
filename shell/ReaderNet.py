@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import logging
-from shell import layers
+from shell import layers, answerlayer
 import torch.nn.functional as F
 
 logger = logging.getLogger(__name__)
@@ -11,53 +11,65 @@ class ReaderNet(nn.Module):
         super(ReaderNet, self).__init__()
 
         self.args = args
-        self.passage_lstm = layers.StackedBRNN(input_size=300, hidden_size=args.hidden_size)
-        self.question_lstm = layers.StackedBRNN(input_size=300, hidden_size=args.hidden_size)
-        self.answer_lstm = layers.StackedBRNN(input_size=300, hidden_size=args.hidden_size)
-        self.questioninfo_lstm = layers.StackedBRNN(input_size=300, hidden_size=args.hidden_size)
 
-        self.match1 = layers.SeqAttnMatchKeyValue(args.hidden_size * 2)
-        self.match2 = layers.SeqAttnMatchKeyValue(args.hidden_size * 2)
-        self.match3 = layers.SeqAttnMatchKeyValue(args.hidden_size * 2)
-        self.match4 = layers.SeqAttnMatchKeyValue(args.hidden_size * 2)
+        #first layer
+        self.question_match1 = layers.SeqAttnMatch(args.embedding_dim)
+        self.questioninfo_match1 = layers.SeqAttnMatch(args.embedding_dim)
+        self.passage_lstm1 = layers.StackedBRNN(input_size=args.embedding_dim * 3, hidden_size=args.hidden_size)
+        self.question_lstm1 = layers.StackedBRNN(input_size=args.embedding_dim, hidden_size=args.hidden_size)
+        self.questioninfo_lstm1 = layers.StackedBRNN(input_size=args.embedding_dim, hidden_size=args.hidden_size)
 
-        self.passage_lstm2 = layers.StackedBRNN(input_size=args.hidden_size * 3 * 2, hidden_size=args.hidden_size)
-        self.answer_lstm2 = layers.StackedBRNN(input_size=args.hidden_size * 2 * 2, hidden_size=args.hidden_size)
+        #second layer
+        self.question_match2 = layers.SeqAttnMatch(args.hidden_size * 2)
+        self.questioninfo_match2 = layers.SeqAttnMatch(args.hidden_size * 2)
+        passage_input_size = args.hidden_size * 2 * 3 + args.embedding_dim
+        question_input_size = args.hidden_size * 2 + args.embedding_dim
+        self.passage_lstm2 = layers.StackedBRNN(input_size=passage_input_size, hidden_size=args.hidden_size)
+        self.question_lstm2 = layers.StackedBRNN(input_size=question_input_size, hidden_size=args.hidden_size)
+        self.questioninfo_lstm2 = layers.StackedBRNN(input_size=question_input_size, hidden_size=args.hidden_size)
 
-        self.self_attn1 = layers.LinearSeqAttn(args.hidden_size * 2)
-        self.self_attn2 = layers.LinearSeqAttn(args.hidden_size * 2)
-
-        self.linear = nn.Linear(args.hidden_size * 2, args.hidden_size * 2)
+        #third layer
+        self.question_match3 = layers.SeqAttnMatchKeyValue(args.hidden_size * 2 * 2)
+        self.questioninfo_match3 = layers.SeqAttnMatchKeyValue(args.hidden_size * 2 * 2)
+        passage_input_size = args.hidden_size * 2 * 4 + args.embedding_dim
+        self.passage_lstm3 = layers.StackedBRNN(input_size=passage_input_size, hidden_size=args.hidden_size)
+        self.answer = answerlayer.AnswerLayer(args)
 
     def forward(self, inputs):
         passage, passage_mask, question, question_mask, questioninfo, questioninfo_mask, \
             answer1, answer1_mask, answer2, answer2_mask = inputs
 
-        passage = self.passage_lstm(passage, passage_mask)
-        question = self.question_lstm(question, question_mask)
-        answer1 = self.answer_lstm(answer1, answer1_mask)
-        answer2 = self.answer_lstm(answer2, answer2_mask)
-        questioninfo = self.questioninfo_lstm(questioninfo, questioninfo_mask)
+        #first layer
+        match1 = self.question_match1(passage, question, question_mask)
+        match2 = self.questioninfo_match1(passage, questioninfo, questioninfo_mask)
+        passage1 = self.passage_lstm1(torch.cat([passage, match1, match2], -1), passage_mask)
+        question1 = self.question_lstm1(question, question_mask)
+        questioninfo1 = self.questioninfo_lstm1(questioninfo, questioninfo_mask)
 
-        match1 = self.match1(passage, question, question_mask)
-        match2 = self.match2(passage, questioninfo, questioninfo_mask)
+        #second layer
+        match1 = self.question_match2(passage1, question1, question_mask)
+        match2 = self.questioninfo_match2(passage1, questioninfo1, questioninfo_mask)
+        passage2 = self.passage_lstm2(torch.cat([passage, match1, match2, passage1], -1), passage_mask)
+        question2 = self.question_lstm2(torch.cat([question, question1], -1), question_mask)
+        questioninfo2 = self.questioninfo_lstm2(torch.cat([questioninfo, questioninfo1], -1), questioninfo_mask)
 
-        passage = self.passage_lstm2(torch.cat([passage, match1, match2], -1), passage_mask)
+        #third layer
+        pm = torch.cat([passage1, passage2], -1)
+        qm = torch.cat([question1, question2], -1)
+        qim = torch.cat([questioninfo1, questioninfo2], -1)
+        match1 = self.question_match3(pm, qm, question2, question_mask)
+        match2 = self.questioninfo_match3(pm, qim, questioninfo2, questioninfo_mask)
+        passage3 = self.passage_lstm3(torch.cat([passage, passage1, passage2, match1, match2], -1), passage_mask)
 
-        match3 = self.match3(answer1, passage, passage_mask)
-        match4 = self.match3(answer2, passage, passage_mask)
+        #finnaly passage information
+        passageinfo = [passage, passage1, passage2, passage3]
 
-        answer1 = self.answer_lstm2(torch.cat([answer1, match3], -1), answer1_mask)
-        answer2 = self.answer_lstm2(torch.cat([answer2, match4], -1), answer2_mask)
-
-        answer1 = self.self_attn1(answer1, answer1_mask).unsqueeze(1)
-        answer2 = self.self_attn1(answer2, answer2_mask).unsqueeze(1)
-        passage = self.self_attn2(passage, passage_mask)
+        #answer info
+        answer1 = self.answer(passageinfo, passage_mask, answer1, answer1_mask)
+        answer2 = self.answer(passageinfo, passage_mask, answer2, answer2_mask)
 
         answer = torch.cat([answer1, answer2], 1)
-
-        answer = self.linear(answer)
-        answer = answer.bmm(passage.unsqueeze(2)).squeeze(2)
         answer = F.log_softmax(answer, dim=-1)
 
         return answer
+

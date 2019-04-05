@@ -159,6 +159,14 @@ class StackedBRNN(nn.Module):
                                training=self.training)
         return output
 
+class SeqAttnMatch(nn.Module):
+    def __init__(self, input_size):
+        super(SeqAttnMatch, self).__init__()
+        self.match = SeqAttnMatchKeyValue(input_size)
+
+    def forward(self, x, y_key, y_mask):
+        return self.match(x, y_key, y_key, y_mask)
+
 class SeqAttnMatchKeyValue(nn.Module):
     """Given sequences X and Y, match sequence Y to each element in X.
 
@@ -174,10 +182,7 @@ class SeqAttnMatchKeyValue(nn.Module):
             self.output_size = PROJECTION_SIZE
         self.linear = nn.Linear(input_size, self.output_size)
 
-    def forward(self, x, y_key, y_mask):
-        return self.forward_inner(x, y_key, y_key, y_mask)
-
-    def forward_inner(self, x, y_key, y_value, y_mask):
+    def forward(self, x, y_key, y_value, y_mask):
         """
         Args:
             x: batch * len1 * hdim
@@ -218,7 +223,7 @@ class LinearSeqAttn(nn.Module):
 
     def __init__(self, input_size):
         super(LinearSeqAttn, self).__init__()
-        self.linear = nn.Linear(input_size, 1)
+        self.linear1 = nn.Linear(input_size, 1)
 
     def forward(self, x, x_mask):
         """
@@ -229,7 +234,7 @@ class LinearSeqAttn(nn.Module):
             alpha: batch * len
         """
         x_flat = x.view(-1, x.size(-1))
-        scores = self.linear(x_flat).view(x.size(0), x.size(1))
+        scores = self.linear1(x_flat).view(x.size(0), x.size(1))
         scores.data.masked_fill_(x_mask.data, -float('inf'))
         alpha = F.softmax(scores, dim=-1)
         return alpha.unsqueeze(1).bmm(x).squeeze(1)
@@ -258,3 +263,20 @@ class LinearScore(nn.Module):
             scores.data.masked_fill_(x_mask.data, -float('inf'))
 
         return scores
+
+class ScoreLayer(nn.Module):
+
+    def __init__(self, input_size):
+        super(ScoreLayer, self).__init__()
+        self.answer_self_attn = LinearSeqAttn(input_size)
+        self.passage_self_attn = LinearSeqAttn(input_size)
+        self.linear = nn.Linear(input_size, input_size)
+
+    def forward(self, passage, passage_mask, answer, answer_mask):
+        answer = self.answer_self_attn(answer, answer_mask).unsqueeze(1)
+        passage = self.passage_self_attn(passage, passage_mask)
+        answer = self.linear(answer)
+        passage = self.linear(passage)
+
+        answer = answer.bmm(passage.unsqueeze(2)).squeeze(2)
+        return answer
