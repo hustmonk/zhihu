@@ -74,8 +74,9 @@ class Reader(object):
 
         # Run forward
         scores = self.network(inputs)
+        loss_fn = torch.nn.CrossEntropyLoss()
 
-        loss = F.nll_loss(scores, targets)
+        loss = loss_fn(scores, targets)
 
         # Clear gradients and run backward
         self.optimizer.zero_grad()

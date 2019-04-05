@@ -256,11 +256,5 @@ class LinearScore(nn.Module):
         scores = self.linear(x).view(x.size(0), -1)
         if x_mask is not None:
             scores.data.masked_fill_(x_mask.data, -float('inf'))
-        if self.training:
-            # In training we output log-softmax for NLL
-            alpha = F.log_softmax(scores, dim=-1)
-        else:
-            # ...Otherwise 0-1 probabilities
-            alpha = F.softmax(scores, dim=-1)
 
-        return alpha
+        return scores
