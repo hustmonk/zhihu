@@ -4,6 +4,11 @@ from torch.utils.data import Dataset
 from shell.vector import vectorize
 import numpy as np
 import unicodedata
+import nltk
+
+def tokenize(sentence):
+    text = nltk.word_tokenize(sentence)
+    return " ".join(text)
 
 def loadxml(filename):
     root = ET.parse(filename).getroot()
@@ -14,15 +19,15 @@ def loadxml(filename):
         passage = instance.find("text").text
         for question in instance.find("questions"):
             questionid = question.attrib["id"]
-            questiontext = question.attrib["text"]
+            questiontext = tokenize(question.attrib["text"])
             answers = []
             label = 0
             for (i, answer) in enumerate(question):
                 answers.append(answer.attrib["text"])
                 if i == 1 and answer.attrib["correct"] == "True":
                     label = 1
-            answer1 = answers[0]
-            answer2 = answers[1]
+            answer1 = tokenize(answers[0])
+            answer2 = tokenize(answers[1])
             data = [questionid, scenario, passage, questiontext, answer1, answer2, label]
             dataset.append(data)
     return dataset
