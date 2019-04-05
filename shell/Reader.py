@@ -39,9 +39,9 @@ class Reader(object):
     def set_training(self, training = False):
         self.training = training
 
-    def load_pretrained_dict(self, args, words_dict):
+    def load_pretrained_dict(self, words_dict):
         self.word_dict = words_dict
-        self.pretraindatalayers.load_pretrained_dict(args, words_dict)
+        self.pretraindatalayers.load_pretrained_dict(self.args, words_dict)
         for idx, m in enumerate(self.network.named_modules()):
             logger.info('NETWORK_GRAPH:\n%s' % str(m))
             break
