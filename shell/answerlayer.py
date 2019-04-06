@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 class AnswerLayer(nn.Module):
     def __init__(self, args):
         super(AnswerLayer, self).__init__()
-
+        self.args = args
         #answer info
         self.answer_match1 = layers.SeqAttnMatch(args.embedding_dim)
         self.answer_match2 = layers.SeqAttnMatch(args.hidden_size * 2)
@@ -35,5 +35,11 @@ class AnswerLayer(nn.Module):
         match = self.answer_match3(answer2, passage2, passage_mask)
         answer3 = self.answer_lstm3(torch.cat([answer2, match], -1), answer_mask)
         score3 = self.scorer3(passage3, passage_mask, answer3, answer_mask)
-
-        return score1 + score2 + score3
+        if self.args.score_type == 0:
+            return score1 + score2 + score3
+        elif self.args.score_type == 1:
+            return score1
+        elif self.args.score_type == 2:
+            return score2
+        elif self.args.score_type == 3:
+            return score3
