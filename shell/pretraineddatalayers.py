@@ -14,25 +14,29 @@ class PretrainedDataLayers(nn.Module):
 
     def __init__(self, args):
         super(PretrainedDataLayers, self).__init__()
-        self.model_args = args
+        self.args = args
+        self.args.embedding_dim = self.args.glove_embedding_dim
+        if self.args.use_cove:
+            self.args.embedding_dim += 600
 
-    def load_pretrained_dict(self, args, word_dict, emb=None):
-
+    def load_pretrained_dict(self, word_dict, emb=None):
         # Word embeddings (+1 for padding)
         self.embedding = nn.Embedding(len(word_dict),
-                                      self.model_args.glove_embedding_dim,
+                                      self.args.glove_embedding_dim,
                                       padding_idx=0)
 
-        self.load_embeddings(word_dict, args.embedding_file)
-        self.mlstm = mlstm.MTLSTM(args)
-        self.mlstm.load_cove(args.cove_file)
+        self.load_embeddings(word_dict, self.args.embedding_file)
+        if self.args.use_cove:
+            self.mlstm = mlstm.MTLSTM(self.args)
+            self.mlstm.load_cove(self.args.cove_file)
         for p in self.parameters():
             p.requires_grad = False
 
     def embed_dropout(self, x, x_mask):
-        emb = self.embedding(x)
-        cove = self.mlstm(emb, x_mask)
-        x = torch.cat([emb, cove[-1]], -1)
+        x = self.embedding(x)
+        if self.args.use_cove:
+            cove = self.mlstm(x, x_mask)
+            x = torch.cat([x, cove[-1]], -1)
         x = nn.functional.dropout(x, p=0.2, training=self.training)
         return x
 

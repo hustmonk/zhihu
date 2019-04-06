@@ -22,15 +22,14 @@ class Reader(object):
         logger.info('CONFIG:\n%s' %
                     json.dumps(vars(args), indent=4, sort_keys=True))
         self.args = args
-        self.network = ReaderNet(args)
         self.updates = updates
         self.training = False
         self.use_cuda = False
 
+        self.pretraindatalayers = PretrainedDataLayers(args)
+        self.network = ReaderNet(args)
         if state_dict:
             self.network.load_state_dict(state_dict)
-
-        self.pretraindatalayers = PretrainedDataLayers(args)
 
         parameters = [p for p in self.network.parameters() if p.requires_grad]
 
@@ -41,7 +40,7 @@ class Reader(object):
 
     def load_pretrained_dict(self, words_dict):
         self.word_dict = words_dict
-        self.pretraindatalayers.load_pretrained_dict(self.args, words_dict)
+        self.pretraindatalayers.load_pretrained_dict(words_dict)
         for idx, m in enumerate(self.network.named_modules()):
             logger.info('NETWORK_GRAPH:\n%s' % str(m))
             break
