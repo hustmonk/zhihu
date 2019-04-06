@@ -275,8 +275,8 @@ class ScoreLayer(nn.Module):
     def forward(self, passage, passage_mask, answer, answer_mask):
         answer = self.answer_self_attn(answer, answer_mask).unsqueeze(1)
         passage = self.passage_self_attn(passage, passage_mask)
-        answer = self.linear(answer)
-        passage = self.linear(passage)
+        answer = F.relu(self.linear(answer))
+        passage = F.relu(self.linear(passage))
 
         answer = answer.bmm(passage.unsqueeze(2)).squeeze(2)
         return answer

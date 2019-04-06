@@ -38,16 +38,18 @@ class PretrainedDataLayers(nn.Module):
 
     def forward(self, inputs):
         passage, passage_mask, question, question_mask, questioninfo, questioninfo_mask, \
-        answer1, answer1_mask, answer2, answer2_mask = inputs
+        answer1, answer1_mask, answer2, answer2_mask, qanswer1, qanswer1_mask, qanswer2, qanswer2_mask = inputs
 
         passage = self.embed_dropout(passage, passage_mask)
         question = self.embed_dropout(question, question_mask)
         questioninfo = self.embed_dropout(questioninfo, questioninfo_mask)
         answer1 = self.embed_dropout(answer1, answer1_mask)
+        qanswer1 = self.embed_dropout(qanswer1, qanswer1_mask)
         answer2 = self.embed_dropout(answer2, answer2_mask)
+        qanswer2 = self.embed_dropout(qanswer2, qanswer2_mask)
 
         return [passage, passage_mask, question, question_mask, questioninfo, questioninfo_mask,
-         answer1, answer1_mask, answer2, answer2_mask]
+         answer1, answer1_mask, answer2, answer2_mask, qanswer1, qanswer1_mask, qanswer2, qanswer2_mask]
 
     def load_embeddings(self, word_dict, embedding_file):
         embedding = self.embedding.weight.data

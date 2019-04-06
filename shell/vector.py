@@ -46,5 +46,5 @@ def batchify(batch):
     qanswer2, qanswer2_mask = tomask(qanswer2)
 
     return [ids, [passage, passage_mask, question, question_mask, questioninfo, questioninfo_mask,
-#                  answer1, answer1_mask, answer2, answer2_mask,
+                  answer1, answer1_mask, answer2, answer2_mask,
                   qanswer1, qanswer1_mask, qanswer2, qanswer2_mask], targets]

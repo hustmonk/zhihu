@@ -34,10 +34,11 @@ class ReaderNet(nn.Module):
         passage_input_size = args.hidden_size * 2 * 4 + args.embedding_dim
         self.passage_lstm3 = layers.StackedBRNN(input_size=passage_input_size, hidden_size=args.hidden_size)
         self.answer = answerlayer.AnswerLayer(args)
+        self.qanswer = answerlayer.AnswerLayer(args)
 
     def forward(self, inputs):
         passage, passage_mask, question, question_mask, questioninfo, questioninfo_mask, \
-            answer1, answer1_mask, answer2, answer2_mask = inputs
+            answer1, answer1_mask, answer2, answer2_mask, qanswer1, qanswer1_mask, qanswer2, qanswer2_mask = inputs
 
         #first layer
         match1 = self.question_match1(passage, question, question_mask)
@@ -68,8 +69,10 @@ class ReaderNet(nn.Module):
         #answer info
         answer1 = self.answer(passageinfo, passage_mask, answer1, answer1_mask)
         answer2 = self.answer(passageinfo, passage_mask, answer2, answer2_mask)
+        qanswer1 = self.qanswer(passageinfo, passage_mask, qanswer1, qanswer1_mask)
+        qanswer2 = self.qanswer(passageinfo, passage_mask, qanswer2, qanswer2_mask)
 
-        answer = torch.cat([answer1, answer2], 1)
+        answer = torch.cat([answer1 + qanswer1, answer2 + qanswer2], 1)
         answer = F.log_softmax(answer, dim=-1)
 
         return answer
