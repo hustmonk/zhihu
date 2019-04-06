@@ -48,8 +48,8 @@ def validate(args, data_loader, model, epoch):
 
     right = 1.0 * sum([1 for (p, t) in zip(preds, targets) if p == t]) / len(preds)
 
-    logger.info('dev: Epoch = %d | precision = %.4f | examples = %d | valid time = %.2f (s)' %
-                (epoch, right, len(targets), eval_time.time()))
+    logger.info('dev: Epoch = %d | precision = %.4f | examples = %d/%d | valid time = %.2f (s)' %
+                (epoch, right, len(targets), len(data_loader), eval_time.time()))
     return right
 
 if __name__ == "__main__":
@@ -93,7 +93,7 @@ if __name__ == "__main__":
     logger.info('=' * 60)
 
     train_dataset = ReaderDataset(train_exs, model)
-    dev_dataset = ReaderDataset(train_exs, model)
+    dev_dataset = ReaderDataset(dev_exs, model)
     train_loader = torch.utils.data.DataLoader(
         train_dataset,
         batch_size = args.batch_size,
