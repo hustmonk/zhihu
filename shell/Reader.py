@@ -87,7 +87,10 @@ class Reader(object):
         # Update parameters
         self.optimizer.step()
         self.updates += 1
-        return loss.data[0], len(ids)
+        if torch.__version__ > "0.4":
+            return loss.item(), len(ids)
+        else:
+            return loss.data[0], len(ids)
 
     # --------------------------------------------------------------------------
     # Prediction
