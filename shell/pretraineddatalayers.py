@@ -37,7 +37,7 @@ class PretrainedDataLayers(nn.Module):
         if self.args.use_cove:
             cove = self.mlstm(x, x_mask)
             x = torch.cat([x, cove[-1]], -1)
-        x = nn.functional.dropout(x, p=0.2, training=self.training)
+        x = nn.functional.dropout(x, p=0.4, training=self.training)
         return x
 
     def forward(self, inputs):
