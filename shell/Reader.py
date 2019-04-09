@@ -5,11 +5,25 @@ import torch
 import torch.nn.functional as F
 import torch.optim as optim
 from .ReaderNet import ReaderNet
-from .pretraineddatalayers import PretrainedDataLayers
 import numpy
 from torch.autograd import Variable
+from pytorch_pretrained_bert import BertTokenizer, BertModel, BertForMaskedLM
 
 logger = logging.getLogger(__name__)
+
+def build_bertfeature(bert, input_ids, attention_mask):
+    encoded_layers, _ = bert(input_ids, attention_mask=attention_mask)
+    attention_mask = 1 - attention_mask
+    return encoded_layers[-1], attention_mask
+
+def bertfeature(bert, inputs):
+    outputs = []
+    for (i) in range(0, len(inputs), 2):
+        ids = inputs[i]
+        mask = inputs[i + 1]
+        f, m = build_bertfeature(bert, ids, mask)
+        outputs = outputs + [f, m]
+    return outputs
 
 class Reader(object):
     # --------------------------------------------------------------------------
@@ -26,7 +40,6 @@ class Reader(object):
         self.training = False
         self.use_cuda = False
 
-        self.pretraindatalayers = PretrainedDataLayers(args)
         self.network = ReaderNet(args)
         if state_dict:
             self.network.load_state_dict(state_dict)
@@ -35,15 +48,7 @@ class Reader(object):
 
         self.optimizer = torch.optim.Adam(parameters)
 
-    def set_training(self, training = False):
-        self.training = training
-
-    def load_pretrained_dict(self, words_dict):
-        self.word_dict = words_dict
-        self.pretraindatalayers.load_pretrained_dict(words_dict)
-        for idx, m in enumerate(self.network.named_modules()):
-            logger.info('NETWORK_GRAPH:\n%s' % str(m))
-            break
+        self.bertmodel = BertModel.from_pretrained(args.bert_base_uncased)
 
     # --------------------------------------------------------------------------
     # Learning
@@ -66,10 +71,9 @@ class Reader(object):
             raise RuntimeError('No optimizer set.')
 
         # Train mode
-        self.pretraindatalayers.train()
         self.network.train()
 
-        inputs = self.pretraindatalayers(inputs)
+        inputs = bertfeature(self.bertmodel, inputs)
 
         # Run forward
         scores = self.network(inputs)
@@ -103,11 +107,10 @@ class Reader(object):
         else:
             inputs = [e if e is None or torch.is_tensor(e) == False else Variable(e) for e in inputs]
         # Eval mode
-        self.pretraindatalayers.eval()
         self.network.eval()
 
         # Run forward
-        inputs = self.pretraindatalayers(inputs)
+        inputs = bertfeature(self.bertmodel, inputs)
 
         # Run forward
         scores = self.network(inputs)
@@ -144,18 +147,6 @@ class Reader(object):
 
     def cuda(self):
         self.use_cuda = True
-        self.pretraindatalayers = self.pretraindatalayers.cuda()
         self.network = self.network.cuda()
-
-    def cpu(self):
-        self.use_cuda = False
-        self.pretraindatalayers = self.pretraindatalayers.cpu()
-        self.network = self.network.cpu()
-
-    def parallelize(self):
-        """Use data parallel to copy the model across several gpus.
-        This will take all gpus visible with CUDA_VISIBLE_DEVICES.
-        """
-        self.parallel = True
-        self.network = torch.nn.DataParallel(self.network)
+        self.model.to('cuda')
 

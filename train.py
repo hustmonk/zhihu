@@ -4,6 +4,7 @@ from shell.Reader import Reader
 from shell import utils
 from shell import vector
 import torch, json
+from pytorch_pretrained_bert import BertTokenizer, BertModel, BertForMaskedLM
 
 iter_counter = 0
 
@@ -60,18 +61,21 @@ if __name__ == "__main__":
     args.cuda = not args.no_cuda and torch.cuda.is_available()
     if args.cuda:
         torch.cuda.set_device(args.gpu)
+    if torch.cuda.is_available() == False:
+        args.test_batch_size = 12
+        args.batch_size = 12
 
     logger = setlogger(args.log_file, args.checkpoint)
 
-    train_exs = loadxml(os.path.join(args.data_dir, args.train_file))
-    dev_exs = loadxml(os.path.join(args.data_dir, args.dev_file))
+    tokenizer = BertTokenizer.from_pretrained(args.bert_base_uncased_vocab)
+    train_exs = loadxml(os.path.join(args.data_dir, args.train_file), tokenizer)
+    dev_exs = loadxml(os.path.join(args.data_dir, args.dev_file), tokenizer)
 
     logger.info("train:%d dev:%d" % (len(train_exs), len(dev_exs)))
     # --------------------------------------------------------------------------
     # MODEL
     logger.info('-' * 100)
     start_epoch = 0
-    word_dict = build_word_dict(train_exs + dev_exs)
 
     if args.pretrained:
         # Just resume training, no modifications.
@@ -80,7 +84,6 @@ if __name__ == "__main__":
     else:
         logger.info('Training model from scratch...')
         model = Reader(args)
-    model.load_pretrained_dict(word_dict)
 
     if args.cuda:
         model.cuda()
@@ -92,8 +95,8 @@ if __name__ == "__main__":
     logger.info('Network total parameters ' + str(psum))
     logger.info('=' * 60)
 
-    train_dataset = ReaderDataset(train_exs, model)
-    dev_dataset = ReaderDataset(dev_exs, model)
+    train_dataset = ReaderDataset(train_exs, tokenizer)
+    dev_dataset = ReaderDataset(dev_exs, tokenizer)
     train_loader = torch.utils.data.DataLoader(
         train_dataset,
         batch_size = args.batch_size,
@@ -126,11 +129,8 @@ if __name__ == "__main__":
 
     for epoch in range(start_epoch, args.num_epochs):
         stats['epoch'] = epoch
-        model.set_training(True)
         # Train
         train(args, train_loader, model, stats)
-
-        model.set_training(False)
 
         result = validate(args, dev_loader, model, stats['epoch'])
 

@@ -1,19 +1,23 @@
 import torch, numpy, random
-def vectorize(ex, model):
-    questionid, scenario, passage, questiontext, answer1, answer2, label = ex
-    word_dict = model.word_dict
-    passage = torch.LongTensor([word_dict[w] for w in passage.split(" ")])
-    question = torch.LongTensor([word_dict[w] for w in questiontext.split(" ")])
-    answer1 = torch.LongTensor([word_dict[w] for w in answer1.split(" ")])
-    answer2 = torch.LongTensor([word_dict[w] for w in answer2.split(" ")])
-    blank = torch.LongTensor([word_dict['.']])
+def to_idx_torch(tokens, tokenizer):
+    tokens = ["[CLS]"] + tokens + ["[SEP]"]
+    return torch.LongTensor(tokenizer.convert_tokens_to_ids(tokens))
+
+def vectorize(ex, tokenizer):
+    questionid, scenario, passage, question, answer1, answer2, label = ex
     k = [answer1, answer2]
     random.shuffle(k)
-    k = [question, k[0], blank, k[1], blank]
-    questioninfo = torch.cat(k, -1)
+    questioninfo = question + ["[SEP]"] + k[0] + ["[SEP]"] + k[1]
+    qanswer1 = question + ["[SEP]"] + answer1
+    qanswer2 = question + ["[SEP]"] + answer2
 
-    qanswer1 = torch.cat([question, answer1], -1)
-    qanswer2 = torch.cat([question, answer2], -1)
+    passage = to_idx_torch(passage, tokenizer)
+    question = to_idx_torch(question, tokenizer)
+    answer1 = to_idx_torch(answer1, tokenizer)
+    answer2 = to_idx_torch(answer2, tokenizer)
+    questioninfo = to_idx_torch(questioninfo, tokenizer)
+    qanswer1 = to_idx_torch(qanswer1, tokenizer)
+    qanswer2 = to_idx_torch(qanswer2, tokenizer)
 
     label = torch.LongTensor(1).fill_(label)
 
@@ -23,10 +27,10 @@ def tomask(texts):
     # Batch questions
     max_length = max([q.size(0) for q in texts])
     x = torch.LongTensor(len(texts), max_length).zero_()
-    x_mask = torch.ByteTensor(len(texts), max_length).fill_(1)
+    x_mask = torch.ByteTensor(len(texts), max_length).fill_(0)
     for i, q in enumerate(texts):
         x[i, :q.size(0)].copy_(q)
-        x_mask[i, :q.size(0)].fill_(0)
+        x_mask[i, :q.size(0)].fill_(1)
     return x, x_mask
 
 def batchify(batch):
