@@ -12,9 +12,10 @@ from pytorch_pretrained_bert import BertTokenizer, BertModel, BertForMaskedLM
 logger = logging.getLogger(__name__)
 
 def build_bertfeature(bert, input_ids, attention_mask):
-    encoded_layers, _ = bert(input_ids, attention_mask=attention_mask)
-    attention_mask = 1 - attention_mask
-    return encoded_layers[-1], attention_mask
+    with torch.no_grad():
+        encoded_layers, _ = bert(input_ids, attention_mask=attention_mask)
+        attention_mask = 1 - attention_mask
+        return encoded_layers[-1], attention_mask
 
 def bertfeature(bert, inputs):
     outputs = []
@@ -148,5 +149,5 @@ class Reader(object):
     def cuda(self):
         self.use_cuda = True
         self.network = self.network.cuda()
-        self.model.to('cuda')
+        self.bertmodel.to('cuda')
 

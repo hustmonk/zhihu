@@ -4,7 +4,6 @@ from torch.utils.data import Dataset
 from shell.vector import vectorize
 import numpy as np
 import unicodedata
-import nltk
 
 def loadxml(filename, tokenizer):
     root = ET.parse(filename).getroot()
