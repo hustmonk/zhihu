@@ -40,6 +40,8 @@ class ReaderNet(nn.Module):
         self.passage_lstm1 = layers.StackedBRNN(input_size=args.embedding_dim, hidden_size=args.hidden_size)
         self.question_lstm1 = layers.StackedBRNN(input_size=args.embedding_dim, hidden_size=args.hidden_size)
         self.questioninfo_lstm1 = layers.StackedBRNN(input_size=args.embedding_dim, hidden_size=args.hidden_size)
+        self.answer = AnswerLayer(args)
+        self.qanswer = AnswerLayer(args)
 
     def forward(self, inputs):
         passage, passage_mask, question, question_mask, questioninfo, questioninfo_mask, \

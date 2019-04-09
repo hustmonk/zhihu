@@ -4,7 +4,7 @@ import logging
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
-from .ReaderNet import ReaderNet
+from .simpleReaderNet import ReaderNet
 import numpy
 from torch.autograd import Variable
 from pytorch_pretrained_bert import BertTokenizer, BertModel, BertForMaskedLM

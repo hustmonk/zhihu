@@ -14,7 +14,7 @@ class StackedBRNN(nn.Module):
     """
 
     def __init__(self, input_size, hidden_size, num_layers = 1,
-                 dropout_rate=0.4, dropout_output=True, rnn_type=nn.LSTM,
+                 dropout_rate=0.2, dropout_output=True, rnn_type=nn.LSTM,
                  concat_layers=False, padding=False):
         super(StackedBRNN, self).__init__()
         self.padding = padding
