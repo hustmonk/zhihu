@@ -1,7 +1,10 @@
 import torch, numpy, random
 def to_idx_torch(tokens, tokenizer):
     tokens = ["[CLS]"] + tokens + ["[SEP]"]
-    return torch.LongTensor(tokenizer.convert_tokens_to_ids(tokens))
+    ids = tokenizer.convert_tokens_to_ids(tokens)
+    if len(ids) > 512:
+        ids = ids[:512]
+    return torch.LongTensor(ids)
 
 def vectorize(ex, tokenizer):
     questionid, scenario, passage, question, answer1, answer2, label = ex
