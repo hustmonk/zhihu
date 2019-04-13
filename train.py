@@ -33,7 +33,7 @@ def train(args, data_loader, model, global_stats):
     logger.info('train: Epoch %d done. Time for epoch = %.2f (s)' %
                 (global_stats['epoch'], epoch_time.time()))
 
-def validate(args, data_loader, model, epoch):
+def validate(data_loader, model, epoch, data_type):
     eval_time = utils.Timer()
     # Run through examples
     ids = []
@@ -49,8 +49,8 @@ def validate(args, data_loader, model, epoch):
 
     right = 1.0 * sum([1 for (p, t) in zip(preds, targets) if p == t]) / len(preds)
 
-    logger.info('dev: Epoch = %d | precision = %.4f | examples = %d/%d | valid time = %.2f (s)' %
-                (epoch, right, len(targets), len(data_loader), eval_time.time()))
+    logger.info('%s: Epoch = %d | precision = %.4f | examples = %d/%d | valid time = %.2f (s)' %
+                (data_type, epoch, right, len(targets), len(data_loader), eval_time.time()))
     return right
 
 if __name__ == "__main__":
@@ -132,7 +132,8 @@ if __name__ == "__main__":
         # Train
         train(args, train_loader, model, stats)
 
-        result = validate(args, dev_loader, model, stats['epoch'])
+        result = validate(train_loader, model, stats['epoch'], "train")
+        result = validate(dev_loader, model, stats['epoch'], "dev")
 
         if result > stats['best_valid']:
             logger.info('Best valid: %.4f -> %.4f (epoch %d, %d updates)' %

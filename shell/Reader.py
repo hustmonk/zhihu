@@ -11,18 +11,19 @@ from pytorch_pretrained_bert import BertTokenizer, BertModel, BertForMaskedLM
 
 logger = logging.getLogger(__name__)
 
-def build_bertfeature(bert, input_ids, attention_mask):
+def build_bertfeature(bert, input_ids, attention_mask, training):
     with torch.no_grad():
         encoded_layers, _ = bert(input_ids, attention_mask=attention_mask)
         attention_mask = 1 - attention_mask
-        return encoded_layers[-1], attention_mask
+        embedding = F.dropout(encoded_layers[-1], p=0.2, training=training)
+        return embedding, attention_mask
 
-def bertfeature(bert, inputs):
+def bertfeature(bert, inputs, training=False):
     outputs = []
     for (i) in range(0, len(inputs), 2):
         ids = inputs[i]
         mask = inputs[i + 1]
-        f, m = build_bertfeature(bert, ids, mask)
+        f, m = build_bertfeature(bert, ids, mask, training)
         outputs = outputs + [f, m]
     return outputs
 
@@ -74,7 +75,7 @@ class Reader(object):
         # Train mode
         self.network.train()
 
-        inputs = bertfeature(self.bertmodel, inputs)
+        inputs = bertfeature(self.bertmodel, inputs, training=True)
 
         # Run forward
         scores = self.network(inputs)
