@@ -12,19 +12,15 @@ class AnswerLayer(nn.Module):
         self.args = args
         #answer info
         self.answer_match1 = layers.SeqAttnMatch(args.embedding_dim)
-        self.answer_match2 = layers.SeqAttnMatch(args.hidden_size * 2)
-        self.answer_match3 = layers.SeqAttnMatch(args.hidden_size * 2)
+        self.linear = nn.Linear(args.embedding_dim * 2, args.hidden_size * 2)
 
-        self.answer_lstm1 = layers.StackedBRNN(input_size=args.embedding_dim, hidden_size=args.hidden_size)
         self.scorer1 = layers.ScoreLayer(args.hidden_size * 2)
 
     def forward(self, passageinfo, passage_mask, answer, answer_mask):
         passage, passage1 = passageinfo
 
         match = self.answer_match1(answer, passage, passage_mask)
-        weight = 0.3
-        answer0 = match * weight + answer * (1 - weight)
-        answer1 = self.answer_lstm1(answer0, answer_mask)
+        answer1 = self.linear(torch.cat([answer, match], -1))
         score1 = self.scorer1(passage1, passage_mask, answer1, answer_mask)
         return score1
 
@@ -37,9 +33,7 @@ class ReaderNet(nn.Module):
         #first layer
         self.question_match1 = layers.SeqAttnMatch(args.embedding_dim)
         self.questioninfo_match1 = layers.SeqAttnMatch(args.embedding_dim)
-        self.passage_lstm1 = layers.StackedBRNN(input_size=args.embedding_dim, hidden_size=args.hidden_size)
-        self.question_lstm1 = layers.StackedBRNN(input_size=args.embedding_dim, hidden_size=args.hidden_size)
-        self.questioninfo_lstm1 = layers.StackedBRNN(input_size=args.embedding_dim, hidden_size=args.hidden_size)
+        self.passage_linear = nn.Linear(args.embedding_dim * 3, args.hidden_size * 2)
         self.answer = AnswerLayer(args)
         self.qanswer = AnswerLayer(args)
 
@@ -50,10 +44,9 @@ class ReaderNet(nn.Module):
         #first layer
         match1 = self.question_match1(passage, question, question_mask)
         match2 = self.questioninfo_match1(passage, questioninfo, questioninfo_mask)
-        passage0 = passage + match1 + match2
-        passage1 = self.passage_lstm1(passage0, passage_mask)
-        question1 = self.question_lstm1(question, question_mask)
-        questioninfo1 = self.questioninfo_lstm1(questioninfo, questioninfo_mask)
+        passage1 = F.relu(self.passage_linear(torch.cat([passage, match1, match2], -1)))
+
+        #second layer
 
         #finnaly passage information
         passageinfo = [passage, passage1]
