@@ -268,9 +268,10 @@ class ScoreLayer(nn.Module):
 
     def __init__(self, input_size):
         super(ScoreLayer, self).__init__()
-        self.answer_self_attn = LinearSeqAttn(input_size)
-        self.passage_self_attn = LinearSeqAttn(input_size)
-        self.linear = nn.Linear(input_size, input_size)
+        self.linear = nn.Linear(input_size, PROJECTION_SIZE)
+
+        self.answer_self_attn = LinearSeqAttn(PROJECTION_SIZE)
+        self.passage_self_attn = LinearSeqAttn(PROJECTION_SIZE)
 
     def forward(self, passage, passage_mask, answer, answer_mask):
         answer = F.relu(self.linear(answer))
