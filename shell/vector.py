@@ -1,17 +1,16 @@
 import torch, numpy, random
-def cat(k1, k2):
-    k1 = ["[CLS]"] + k1 + ["[SEP]"]
-    k2 = k2 + ["[SEP]"]
-    segment_ids = [0] * len(k1) + [1] * len(k2)
-    k = k1 + k2
-    return k, segment_ids
 
 def to_idx_torch(tokens1, tokens2, tokenizer):
-    tokens, segment_ids = cat(tokens1, tokens2)
-    ids = tokenizer.convert_tokens_to_ids(tokens)
-    if len(ids) > 512:
-        ids = ids[:512]
-        segment_ids = segment_ids[:512]
+    CLS = tokenizer.convert_tokens_to_ids(["[CLS]"])
+    SEP = tokenizer.convert_tokens_to_ids(["[SEP]"])
+    tokens1 = tokenizer.convert_tokens_to_ids(tokens1)
+    tokens2 = tokenizer.convert_tokens_to_ids(tokens2)
+    length = 3 + len(tokens1) + len(tokens2)
+    if length > 512:
+        tokens2length = 512 - 3 - len(tokens1)
+        tokens2 = tokens2[:tokens2length]
+    ids = CLS + tokens1 + SEP + tokens2 + SEP
+    segment_ids = [0] * (len(tokens1) + 2) + [1] * (len(tokens2) + 1)
     return torch.LongTensor(ids), torch.LongTensor(segment_ids)
 
 def vectorize(ex, tokenizer):
