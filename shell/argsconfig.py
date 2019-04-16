@@ -36,9 +36,9 @@ def initargs():
                                'operations (for reproducibility)'))
     runtime.add_argument('--num-epochs', type=int, default=30,
                          help='Train data iterations')
-    runtime.add_argument('--batch-size', type=int, default=32,
+    runtime.add_argument('--batch-size', type=int, default=12,
                          help='Batch size for training')
-    runtime.add_argument('--test-batch-size', type=int, default=128,
+    runtime.add_argument('--test-batch-size', type=int, default=32,
                          help='Batch size during validation/testing')
     runtime.add_argument('--display-iter', type=int, default=10,
                          help='Batch size during validation/testing')
@@ -84,7 +84,7 @@ def initargs():
     model = parser.add_argument_group('Reader Model Architecture')
     model.add_argument('--hidden-size', type=int, default=125,
                        help='Hidden size of RNN units')
-    model.add_argument('--learning-rate', type=float, default=2e-3,
+    model.add_argument('--learning-rate', type=float, default=5e-5,
                        help='Learning rate for SGD only')
     model.add_argument('--grad-clipping', type=float, default=10,
                        help='Gradient clipping')
@@ -92,6 +92,9 @@ def initargs():
                        help='Weight decay factor')
     model.add_argument('--momentum', type=float, default=0,
                        help='Momentum factor')
+    model.add_argument("--warmup_proportion", default=0.1, type=float,
+                        help="Proportion of training to perform linear learning rate warmup for. E.g., 0.1 = 10%% "
+                             "of training.")
     args = parser.parse_args()
     return args
 
