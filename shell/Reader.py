@@ -26,7 +26,7 @@ class Reader(object):
         self.training = False
         self.use_cuda = False
 
-        self.network = ReaderNet.from_pretrained(args.bert_base_uncased)
+        self.network = ReaderNet(args)
 
         #set optimizer
         param_optimizer = list(self.network.named_parameters())
@@ -40,10 +40,11 @@ class Reader(object):
             {'params': [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)], 'weight_decay': 0.01},
             {'params': [p for n, p in param_optimizer if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}
         ]
-
+        num_train_optimization_steps = 10000/args.batch_size * 10
         self.optimizer = BertAdam(optimizer_grouped_parameters,
                              lr=args.learning_rate,
-                             warmup=args.warmup_proportion)
+                             warmup=args.warmup_proportion,
+                             t_total=num_train_optimization_steps)
 
     # --------------------------------------------------------------------------
     # Learning

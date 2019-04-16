@@ -8,15 +8,14 @@ from pytorch_pretrained_bert.modeling import BertPreTrainedModel
 
 logger = logging.getLogger(__name__)
 
-class ReaderNet(BertPreTrainedModel):
-    def __init__(self, config):
-        super(ReaderNet, self).__init__(config)
+class ReaderNet(nn.Module):
+    def __init__(self, args):
+        super(ReaderNet, self).__init__()
 
-        self.bert = BertModel(config)
-        self.linear = nn.Linear(config.hidden_size, 250)
+        self.bert = BertModel.from_pretrained(args.bert_base_uncased)
+        self.linear = nn.Linear(args.embedding_dim, 250)
 
         self.scorer = layers.ScoreLayer(250)
-        self.apply(self.init_bert_weights)
 
     def bertfeature(self, inputs):
         outputs = []
