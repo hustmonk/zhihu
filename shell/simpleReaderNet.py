@@ -13,18 +13,14 @@ class ReaderNet(nn.Module):
         self.args = args
 
         #first layer
-        self.linear = nn.Linear(args.embedding_dim, 250)
+        self.scorer = layers.ScoreLayer(args.embedding_dim)
 
     def forward(self, inputs):
-        passage, passage_pooled, passage_mask, answer1, answer1_pooled, answer1_mask, answer2, answer2_pooled, answer2_mask = inputs
-
-        passage_pooled = self.linear(passage_pooled)
-        answer1_pooled = self.linear(answer1_pooled).unsqueeze(1)
-        answer2_pooled = self.linear(answer2_pooled).unsqueeze(1)
+        passage, passage_mask, answer1, answer1_mask, answer2, answer2_mask = inputs
 
         #first layer
-        score1 = answer1_pooled.bmm(passage_pooled.unsqueeze(2)).squeeze(2)
-        score2 = answer2_pooled.bmm(passage_pooled.unsqueeze(2)).squeeze(2)
+        score1 = self.scorer(passage, passage_mask, answer1, answer1_mask)
+        score2 = self.scorer(passage, passage_mask, answer2, answer2_mask)
 
         answer = torch.cat([score1, score2], 1)
         answer = F.log_softmax(answer, dim=-1)

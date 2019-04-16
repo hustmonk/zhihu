@@ -16,7 +16,7 @@ def build_bertfeature(bert, input_ids, segments_ids, attention_mask, training):
         encoded_layers, pooled_output = bert(input_ids, segments_ids, attention_mask=attention_mask)
         attention_mask = 1 - attention_mask
         embedding = F.dropout(encoded_layers[-1], p=0.2, training=training)
-        return embedding, pooled_output, attention_mask
+        return embedding, attention_mask
 
 def bertfeature(bert, inputs, training=False):
     outputs = []
@@ -24,8 +24,8 @@ def bertfeature(bert, inputs, training=False):
         ids = inputs[i]
         segments = inputs[i + 1]
         mask = inputs[i + 2]
-        f, pooled_output, m = build_bertfeature(bert, ids, segments, mask, training)
-        outputs = outputs + [f, pooled_output, m]
+        f, m = build_bertfeature(bert, ids, segments, mask, training)
+        outputs = outputs + [f, m]
     return outputs
 
 class Reader(object):
