@@ -34,7 +34,7 @@ def initargs():
     runtime.add_argument('--random-seed', type=int, default=1013,
                          help=('Random seed for all numpy/torch/cuda '
                                'operations (for reproducibility)'))
-    runtime.add_argument('--num-epochs', type=int, default=30,
+    runtime.add_argument('--num-epochs', type=int, default=5,
                          help='Train data iterations')
     runtime.add_argument('--batch-size', type=int, default=12,
                          help='Batch size for training')

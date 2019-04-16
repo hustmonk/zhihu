@@ -25,9 +25,9 @@ class ReaderNet(nn.Module):
             mask = inputs[i + 2]
             encoded_layers, pooled_output = self.bert(ids, segments, attention_mask=mask)
             mask = 1 - mask
-            embedding = F.dropout(encoded_layers[-1], p=0.2, training=self.training)
+            embedding = F.dropout(encoded_layers[-1], p=0.4, training=self.training)
             embedding = F.relu(self.linear(embedding))
-            embedding = F.dropout(embedding, p=0.2, training=self.training)
+            embedding = F.dropout(embedding, p=0.4, training=self.training)
 
             outputs = outputs + [embedding, mask]
         return outputs
