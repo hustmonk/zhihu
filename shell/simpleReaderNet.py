@@ -12,7 +12,7 @@ class ReaderNet(BertPreTrainedModel):
     def __init__(self, config):
         super(ReaderNet, self).__init__(config)
 
-        self.bertmodel = BertModel(config)
+        self.bert = BertModel(config)
         self.scorer = layers.ScoreLayer(config.hidden_size)
         self.apply(self.init_bert_weights)
 
@@ -22,7 +22,7 @@ class ReaderNet(BertPreTrainedModel):
             ids = inputs[i]
             segments = inputs[i + 1]
             mask = inputs[i + 2]
-            encoded_layers, pooled_output = self.bertmodel(ids, segments, attention_mask=mask)
+            encoded_layers, pooled_output = self.bert(ids, segments, attention_mask=mask)
             mask = 1 - mask
             embedding = F.dropout(encoded_layers[-1], p=0.2, training=self.training)
             outputs = outputs + [embedding, mask]

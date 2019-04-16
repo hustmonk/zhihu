@@ -138,5 +138,4 @@ class Reader(object):
     def cuda(self):
         self.use_cuda = True
         self.network = self.network.cuda()
-        self.bertmodel = self.bertmodel.cuda()
 
