@@ -13,7 +13,9 @@ class ReaderNet(BertPreTrainedModel):
         super(ReaderNet, self).__init__(config)
 
         self.bert = BertModel(config)
-        self.scorer = layers.ScoreLayer(config.hidden_size)
+        self.linear = nn.Linear(config.hidden_size, 250)
+
+        self.scorer = layers.ScoreLayer(250)
         self.apply(self.init_bert_weights)
 
     def bertfeature(self, inputs):
@@ -25,6 +27,9 @@ class ReaderNet(BertPreTrainedModel):
             encoded_layers, pooled_output = self.bert(ids, segments, attention_mask=mask)
             mask = 1 - mask
             embedding = F.dropout(encoded_layers[-1], p=0.2, training=self.training)
+            embedding = F.relu(self.linear(embedding))
+            embedding = F.dropout(embedding, p=0.2, training=self.training)
+
             outputs = outputs + [embedding, mask]
         return outputs
 

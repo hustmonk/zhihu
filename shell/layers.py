@@ -274,8 +274,8 @@ class ScoreLayer(nn.Module):
         self.passage_self_attn = LinearSeqAttn(PROJECTION_SIZE)
 
     def forward(self, passage, passage_mask, answer, answer_mask):
-        answer = F.relu(self.linear(answer))
-        passage = F.relu(self.linear(passage))
+        answer = F.tanh(self.linear(answer))
+        passage = F.tanh(self.linear(passage))
         answer = self.answer_self_attn(answer, answer_mask).unsqueeze(1)
         passage = self.passage_self_attn(passage, passage_mask)
 
