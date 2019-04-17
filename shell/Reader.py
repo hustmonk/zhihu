@@ -33,7 +33,15 @@ class Reader(object):
 
         # hack to remove pooler, which is not used
         # thus it produce None grad that break apex
-        param_optimizer = [n for n in param_optimizer if 'pooler' not in n[0]]
+        def ignore(n):
+            ignores = ['pooler', 'bert.embeddings', 'bert.encoder.layer.0.', 'bert.encoder.layer.1.', 'bert.encoder.layer.2.',
+                   'bert.encoder.layer.3.', 'bert.encoder.layer.4.', 'bert.encoder.layer.5.'
+                   ]
+            for k in ignores:
+                if k in n[0]:
+                    return True
+            return False
+        param_optimizer = [n for n in param_optimizer if ignore(n) == False]
 
         no_decay = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']
         optimizer_grouped_parameters = [
