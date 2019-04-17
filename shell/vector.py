@@ -16,13 +16,12 @@ def to_idx_torch(tokens1, tokens2, tokenizer):
 def vectorize(ex, tokenizer):
     questionid, scenario, passage, question, answer1, answer2, label = ex
 
-    passage, passage_segment_ids = to_idx_torch(question, passage, tokenizer)
-    answer1, answer1_segment_ids = to_idx_torch(question, answer1, tokenizer)
-    answer2, answer2_segment_ids = to_idx_torch(question, answer2, tokenizer)
+    answer1, answer1_segment_ids = to_idx_torch(question + answer1, passage, tokenizer)
+    answer2, answer2_segment_ids = to_idx_torch(question + answer2, passage, tokenizer)
 
     label = torch.LongTensor(1).fill_(label)
 
-    return [questionid, [passage, passage_segment_ids, answer1, answer1_segment_ids, answer2, answer2_segment_ids], label]
+    return [questionid, [answer1, answer1_segment_ids, answer2, answer2_segment_ids], label]
 
 def tomask(texts, segment_ids):
     # Batch questions
@@ -40,12 +39,11 @@ def batchify(batch):
     ids = [ex[0] for ex in batch]
     input_num = len(batch[0][1])
     inputs = [[ex[1][k] for ex in batch] for k in range(input_num)]
-    passage, passage_segment_ids, answer1, answer1_segment_ids, answer2, answer2_segment_ids = inputs
+    answer1, answer1_segment_ids, answer2, answer2_segment_ids = inputs
 
     targets = torch.cat([ex[2] for ex in batch])
 
-    passage, passage_segment_ids, passage_mask = tomask(passage, passage_segment_ids)
     answer1, answer1_segment_ids, answer1_mask = tomask(answer1, answer1_segment_ids)
     answer2, answer2_segment_ids, answer2_mask = tomask(answer2, answer2_segment_ids)
 
-    return [ids, [passage, passage_segment_ids, passage_mask, answer1, answer1_segment_ids, answer1_mask, answer2, answer2_segment_ids, answer2_mask], targets]
+    return [ids, [answer1, answer1_segment_ids, answer1_mask, answer2, answer2_segment_ids, answer2_mask], targets]
