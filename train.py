@@ -64,10 +64,16 @@ if __name__ == "__main__":
     if torch.cuda.is_available() == False:
         args.test_batch_size = 12
         args.batch_size = 12
+    if args.bert_uncased:
+        args.bert_vocab = args.bert_base_uncased_vocab
+        args.bert_model = args.bert_base_uncased
+    else:
+        args.bert_vocab = args.bert_base_cased_vocab
+        args.bert_model = args.bert_base_cased
 
     logger = setlogger(args.log_file, args.checkpoint)
 
-    tokenizer = BertTokenizer.from_pretrained(args.bert_base_uncased_vocab)
+    tokenizer = BertTokenizer.from_pretrained(args.bert_vocab)
     train_exs = loadxml(os.path.join(args.data_dir, args.train_file), tokenizer)
     dev_exs = loadxml(os.path.join(args.data_dir, args.dev_file), tokenizer)
 

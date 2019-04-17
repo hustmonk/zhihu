@@ -76,11 +76,15 @@ def initargs():
     pretrainedfiles.add_argument('--score-type', type=int, default=0)
 
     pretrainedfiles.add_argument('--bert-base-uncased-vocab', type=str,
-                       default=WORK_SPACE + '/data/bert-base-cased-vocab.txt',
-                       help='Space-separated pretrained cove file')
+                       default=WORK_SPACE + '/data/bert-base-uncased-vocab.txt')
     pretrainedfiles.add_argument('--bert-base-uncased', type=str,
-                       default=WORK_SPACE + '/data/bert-base-cased.tar.gz',
-                       help='Space-separated pretrained cove file')
+                       default=WORK_SPACE + '/data/bert-base-uncased.tar.gz')
+    pretrainedfiles.add_argument('--bert-base-cased-vocab', type=str,
+                       default=WORK_SPACE + '/data/bert-base-cased-vocab.txt')
+    pretrainedfiles.add_argument('--bert-base-cased', type=str,
+                       default=WORK_SPACE + '/data/bert-base-cased.tar.gz')
+    pretrainedfiles.add_argument('--bert-uncased', type='bool', default=False,
+                         help='choose bert model.')
     model = parser.add_argument_group('Reader Model Architecture')
     model.add_argument('--hidden-size', type=int, default=125,
                        help='Hidden size of RNN units')

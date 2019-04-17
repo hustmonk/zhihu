@@ -6,8 +6,8 @@ def to_idx_torch(tokens1, tokens2, tokenizer):
     tokens1 = tokenizer.convert_tokens_to_ids(tokens1)
     tokens2 = tokenizer.convert_tokens_to_ids(tokens2)
     length = 3 + len(tokens1) + len(tokens2)
-    if length > 512:
-        tokens2length = 512 - 3 - len(tokens1)
+    if length > 400:
+        tokens2length = 400 - 3 - len(tokens1)
         tokens2 = tokens2[:tokens2length]
     ids = CLS + tokens1 + SEP + tokens2 + SEP
     segment_ids = [0] * (len(tokens1) + 2) + [1] * (len(tokens2) + 1)
@@ -19,7 +19,7 @@ def vectorize(ex, tokenizer):
     answer1, answer1_segment_ids = to_idx_torch(question + answer1, passage, tokenizer)
     answer2, answer2_segment_ids = to_idx_torch(question + answer2, passage, tokenizer)
 
-    label = torch.LongTensor(1).fill_(label)
+    label = torch.LongTensor([label])
 
     return [questionid, [answer1, answer1_segment_ids, answer2, answer2_segment_ids], label]
 
