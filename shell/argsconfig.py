@@ -36,9 +36,9 @@ def initargs():
                                'operations (for reproducibility)'))
     runtime.add_argument('--num-epochs', type=int, default=5,
                          help='Train data iterations')
-    runtime.add_argument('--batch-size', type=int, default=12,
+    runtime.add_argument('--batch-size', type=int, default=6,
                          help='Batch size for training')
-    runtime.add_argument('--test-batch-size', type=int, default=12,
+    runtime.add_argument('--test-batch-size', type=int, default=6,
                          help='Batch size during validation/testing')
     runtime.add_argument('--display-iter', type=int, default=10,
                          help='Batch size during validation/testing')

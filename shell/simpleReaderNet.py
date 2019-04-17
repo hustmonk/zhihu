@@ -23,8 +23,8 @@ class ReaderNet(nn.Module):
             mask = inputs[i + 2]
             encoded_layers, pooled_output = self.bert(ids, segments, attention_mask=mask)
             encoder = encoded_layers[-1][:, 0, :]
+            encoder = F.dropout(encoder, p = 0.2, training=self.training)
             score = self.linear(encoder)
-
             scores.append(score)
         return F.log_softmax(torch.cat(scores, 1), dim=-1)
 
