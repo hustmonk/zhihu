@@ -16,8 +16,8 @@ def to_idx_torch(tokens1, tokens2, tokenizer):
 def vectorize(ex, tokenizer):
     questionid, scenario, passage, question, answer1, answer2, label = ex
 
-    answer1, answer1_segment_ids = to_idx_torch(question + answer1, passage, tokenizer)
-    answer2, answer2_segment_ids = to_idx_torch(question + answer2, passage, tokenizer)
+    answer1, answer1_segment_ids = to_idx_torch(answer1, question + passage, tokenizer)
+    answer2, answer2_segment_ids = to_idx_torch(answer2, question + passage, tokenizer)
 
     label = torch.LongTensor([label])
 

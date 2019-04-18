@@ -62,8 +62,8 @@ if __name__ == "__main__":
     if args.cuda:
         torch.cuda.set_device(args.gpu)
     if torch.cuda.is_available() == False:
-        args.test_batch_size = 12
-        args.batch_size = 12
+        args.test_batch_size = 6
+        args.batch_size = 6
     if args.bert_uncased:
         args.bert_vocab = args.bert_base_uncased_vocab
         args.bert_model = args.bert_base_uncased

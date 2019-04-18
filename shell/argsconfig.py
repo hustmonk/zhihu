@@ -83,7 +83,7 @@ def initargs():
                        default=WORK_SPACE + '/data/bert-base-cased-vocab.txt')
     pretrainedfiles.add_argument('--bert-base-cased', type=str,
                        default=WORK_SPACE + '/data/bert-base-cased.tar.gz')
-    pretrainedfiles.add_argument('--bert-uncased', type='bool', default=False,
+    pretrainedfiles.add_argument('--bert-uncased', type='bool', default=True,
                          help='choose bert model.')
     model = parser.add_argument_group('Reader Model Architecture')
     model.add_argument('--hidden-size', type=int, default=125,
