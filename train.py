@@ -39,7 +39,7 @@ def validate(data_loader, model, epoch, data_type):
     ids = []
     preds = []
     targets = []
-    fout = open("bad.ids.txt", "w")
+    fout = open(data_type + "." + str(epoch) + ".bad.ids.txt", "w")
     for ex in data_loader:
         ids, inputs, target = ex
         pred = model.predict(inputs)

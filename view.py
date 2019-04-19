@@ -1,7 +1,12 @@
 import xml.etree.ElementTree as ET
+import sys
 pids = set()
 ids = set()
-for id in open("shell/bad.ids.txt"):
+
+filename = "bad.ids.txt"
+if len(sys.argv) > 1:
+    filename = sys.argv[1]
+for id in open(filename):
     id = id.strip()
     p, q = id.split("_")
     pids.add(p)

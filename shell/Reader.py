@@ -34,9 +34,8 @@ class Reader(object):
         # hack to remove pooler, which is not used
         # thus it produce None grad that break apex
         def ignore(n):
-            ignores = ['pooler', 'bert.embeddings', 'bert.encoder.layer.0.', 'bert.encoder.layer.1.', 'bert.encoder.layer.2.',
-                   'bert.encoder.layer.3.', 'bert.encoder.layer.4.', 'bert.encoder.layer.5.', 'bert.encoder.layer.6.',
-                       'bert.encoder.layer.7.', 'bert.encoder.layer.8.'
+            ignores = ['pooler', 'bert.embeddings', 'bert.encoder.layer.0.', 'bert.encoder.layer.1.',
+                       'bert.encoder.layer.2.', 'bert.encoder.layer.3.'
                    ]
             for k in ignores:
                 if k in n[0]:

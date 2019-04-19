@@ -13,7 +13,7 @@ class ReaderNet(nn.Module):
         super(ReaderNet, self).__init__()
 
         self.bert = BertModel.from_pretrained(args.bert_model)
-        self.linear = nn.Linear(args.embedding_dim, 1)
+        self.linear = nn.Linear(args.embedding_dim * 2, 1)
 
     def forward(self, inputs):
         scores = []
@@ -22,7 +22,9 @@ class ReaderNet(nn.Module):
             segments = inputs[i + 1]
             mask = inputs[i + 2]
             encoded_layers, pooled_output = self.bert(ids, segments, attention_mask=mask)
-            encoder = encoded_layers[-1][:, 0, :]
+            encoder1 = encoded_layers[-1][:, 0, :]
+            encoder2 = encoded_layers[-2][:, 0, :]
+            encoder = torch.cat([encoder1, encoder2], -1)
             encoder = F.dropout(encoder, p=0.4, training=self.training)
             score = self.linear(encoder)
             scores.append(score)
