@@ -13,7 +13,7 @@ def loadxml(filename, tokenizer):
         scenario = tokenizer.tokenize(instance.attrib["scenario"])
         passage = tokenizer.tokenize(instance.find("text").text)
         for questioninfo in instance.find("questions"):
-            questionid = questioninfo.attrib["id"]
+            questionid = id + "_" + questioninfo.attrib["id"]
             question = tokenizer.tokenize(questioninfo.attrib["text"])
             answers = []
             label = 0

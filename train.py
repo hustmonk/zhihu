@@ -39,14 +39,19 @@ def validate(data_loader, model, epoch, data_type):
     ids = []
     preds = []
     targets = []
+    fout = open("bad.ids.txt", "w")
     for ex in data_loader:
         ids, inputs, target = ex
         pred = model.predict(inputs)
+        target = target.numpy().tolist()
         preds += pred
-        targets += target.numpy().tolist()
+        targets += target
+        for (id, p, t) in zip(ids, pred, target):
+            if p != t:
+                fout.write(id + "\n")
         if torch.cuda.is_available() == False:
             break
-
+    fout.close()
     right = 1.0 * sum([1 for (p, t) in zip(preds, targets) if p == t]) / len(preds)
 
     logger.info('%s: Epoch = %d | precision = %.4f | examples = %d/%d | valid time = %.2f (s)' %
