@@ -75,6 +75,7 @@ def initargs():
     pretrainedfiles.add_argument('--use-cove', type='bool', default=False)
     pretrainedfiles.add_argument('--score-type', type=int, default=0)
 
+
     pretrainedfiles.add_argument('--bert-base-uncased-vocab', type=str,
                        default=WORK_SPACE + '/data/bert-base-uncased-vocab.txt')
     pretrainedfiles.add_argument('--bert-base-uncased', type=str,
@@ -95,6 +96,8 @@ def initargs():
     model.add_argument('--weight-decay', type=float, default=0,
                        help='Weight decay factor')
     model.add_argument('--momentum', type=float, default=0,
+                       help='Momentum factor')
+    model.add_argument('--word-dropout', type=float, default=0.1,
                        help='Momentum factor')
     model.add_argument("--warmup_proportion", default=0.1, type=float,
                         help="Proportion of training to perform linear learning rate warmup for. E.g., 0.1 = 10%% "
