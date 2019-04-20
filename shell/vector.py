@@ -1,14 +1,18 @@
 import torch, numpy, random
 
-def to_idx_torch(tokens1, tokens2, tokenizer):
+def to_idx_torch(answer, question, passage, tokenizer):
     CLS = tokenizer.convert_tokens_to_ids(["[CLS]"])
     SEP = tokenizer.convert_tokens_to_ids(["[SEP]"])
-    tokens1 = tokenizer.convert_tokens_to_ids(tokens1)
-    tokens2 = tokenizer.convert_tokens_to_ids(tokens2)
-    length = 3 + len(tokens1) + len(tokens2)
+
+    answer = tokenizer.convert_tokens_to_ids(answer)
+    question = tokenizer.convert_tokens_to_ids(question)
+    passage = tokenizer.convert_tokens_to_ids(passage)
+    length = 3 + len(answer) + len(question) + len(passage)
     if length > 400:
-        tokens2length = 400 - 3 - len(tokens1)
-        tokens2 = tokens2[:tokens2length]
+        tokens2length = 400 - 3 - len(answer) - len(question)
+        passage = passage[:tokens2length]
+    tokens1 = question + answer
+    tokens2 = passage
     ids = CLS + tokens1 + SEP + tokens2 + SEP
     segment_ids = [0] * (len(tokens1) + 2) + [1] * (len(tokens2) + 1)
     return torch.LongTensor(ids), torch.LongTensor(segment_ids)
@@ -16,8 +20,8 @@ def to_idx_torch(tokens1, tokens2, tokenizer):
 def vectorize(ex, tokenizer):
     questionid, scenario, passage, question, answer1, answer2, label = ex
 
-    answer1, answer1_segment_ids = to_idx_torch(answer1, question + passage, tokenizer)
-    answer2, answer2_segment_ids = to_idx_torch(answer2, question + passage, tokenizer)
+    answer1, answer1_segment_ids = to_idx_torch(answer1, question, passage, tokenizer)
+    answer2, answer2_segment_ids = to_idx_torch(answer2, question, passage, tokenizer)
 
     label = torch.LongTensor([label])
 

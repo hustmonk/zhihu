@@ -25,7 +25,7 @@ class ReaderNet(nn.Module):
             encoder1 = encoded_layers[-1][:, 0, :]
             encoder2 = pooled_output
             encoder = torch.cat([encoder1, encoder2], -1)
-            encoder = F.dropout(encoder, p=0.4, training=self.training)
+            encoder = F.dropout(encoder, p=0.6, training=self.training)
             score = self.linear(encoder)
             scores.append(score)
         return F.log_softmax(torch.cat(scores, 1), dim=-1)
