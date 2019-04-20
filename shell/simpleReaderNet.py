@@ -23,7 +23,7 @@ class ReaderNet(nn.Module):
             mask = inputs[i + 2]
             encoded_layers, pooled_output = self.bert(ids, segments, attention_mask=mask)
             encoder1 = encoded_layers[-1][:, 0, :]
-            encoder2 = encoded_layers[-2][:, 0, :]
+            encoder2 = pooled_output
             encoder = torch.cat([encoder1, encoder2], -1)
             encoder = F.dropout(encoder, p=0.4, training=self.training)
             score = self.linear(encoder)
