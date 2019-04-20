@@ -17,11 +17,11 @@ class ReaderNet(nn.Module):
         self.linear = nn.Linear(args.embedding_dim * 2, 1)
 
     def wordDropout(self, ids):
-        if self.training == False and self.args.word_dropout > 0:
+        if self.training == False or self.args.word_dropout == 0:
             return ids
 
         for i in range(ids.size(0)):
-            for j in range(ids.size(1)):
+            for j in range(1, ids.size(1)):
                 if ids[i, j] == 0:
                     break
                 if numpy.random.rand() < self.args.word_dropout:
