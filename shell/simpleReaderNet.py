@@ -14,7 +14,8 @@ class ReaderNet(nn.Module):
         super(ReaderNet, self).__init__()
         self.args = args
         self.bert = BertModel.from_pretrained(args.bert_model)
-        self.linear = nn.Linear(args.embedding_dim, 1)
+        self.linear1 = nn.Linear(args.embedding_dim, 1)
+        self.linear2 = nn.Linear(args.embedding_dim, 1)
 
     def wordDropout(self, ids):
         if self.training == False or self.args.word_dropout == 0:
@@ -37,9 +38,10 @@ class ReaderNet(nn.Module):
         encoder1 = self.encode(inputs[0], inputs[1], inputs[2])
         encoder2 = self.encode(inputs[3], inputs[4], inputs[5])
 
+        encoder = torch.cat([encoder1 - encoder2, encoder2 - encoder1], 1)
+        scores1 = self.linear1(encoder).view(-1, 2)
+
         encoder = torch.cat([encoder1, encoder2], 1)
-
-        scores = self.linear(encoder).view(-1, 2)
-
-        return F.log_softmax(scores, dim=-1)
+        scores2 = self.linear2(encoder).view(-1, 2)
+        return F.log_softmax(scores1 + scores2, dim=-1)
 
