@@ -21,7 +21,7 @@ class ReaderNet(nn.Module):
             return ids
 
         for i in range(ids.size(0)):
-            for j in range(1, ids.size(1)):
+            for j in range(30, ids.size(1)):
                 if ids[i, j] == 0:
                     break
                 if numpy.random.rand() < self.args.word_dropout:
