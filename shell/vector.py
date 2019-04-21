@@ -1,19 +1,16 @@
 import torch, numpy, random
 
-def to_idx_torch(answer, question, passage, tokenizer):
+def to_idx_torch(answer, question, passage, oanswer, tokenizer):
     CLS = tokenizer.convert_tokens_to_ids(["[CLS]"])
     SEP = tokenizer.convert_tokens_to_ids(["[SEP]"])
 
-    answer = tokenizer.convert_tokens_to_ids(answer)
-    question = tokenizer.convert_tokens_to_ids(question)
-    passage = tokenizer.convert_tokens_to_ids(passage)
     special_size = 3
-    length = special_size + len(answer) + len(question) + len(passage)
+    length = special_size + len(answer) + len(question) + len(passage) + len(oanswer)
     if length > 400:
-        tokens2length = 400 - special_size - len(answer) - len(question)
+        tokens2length = 400 - special_size - len(answer) - len(question) - len(oanswer)
         passage = passage[:tokens2length]
     tokens1 = answer + SEP + question
-    tokens2 = passage
+    tokens2 = oanswer + SEP + passage
     ids = CLS + tokens1 + SEP + tokens2 + SEP
     segment_ids = [0] * (len(tokens1) + 2) + [1] * (len(tokens2) + 1)
     return torch.LongTensor(ids), torch.LongTensor(segment_ids)
@@ -21,12 +18,17 @@ def to_idx_torch(answer, question, passage, tokenizer):
 def vectorize(ex, tokenizer):
     questionid, scenario, passage, question, answer1, answer2, label = ex
 
-    answer1, answer1_segment_ids = to_idx_torch(answer1, question, passage, tokenizer)
-    answer2, answer2_segment_ids = to_idx_torch(answer2, question, passage, tokenizer)
+    answer1 = tokenizer.convert_tokens_to_ids(answer1)
+    question = tokenizer.convert_tokens_to_ids(question)
+    passage = tokenizer.convert_tokens_to_ids(passage)
+    answer2 = tokenizer.convert_tokens_to_ids(answer2)
+
+    answer1_ids, answer1_segment_ids = to_idx_torch(answer1, question, passage, answer2, tokenizer)
+    answer2_ids, answer2_segment_ids = to_idx_torch(answer2, question, passage, answer1, tokenizer)
 
     label = torch.LongTensor([label])
 
-    return [questionid, [answer1, answer1_segment_ids, answer2, answer2_segment_ids], label]
+    return [questionid, [answer1_ids, answer1_segment_ids, answer2_ids, answer2_segment_ids], label]
 
 def tomask(texts, segment_ids):
     # Batch questions
