@@ -14,7 +14,7 @@ class ReaderNet(nn.Module):
         super(ReaderNet, self).__init__()
         self.args = args
         self.bert = BertModel.from_pretrained(args.bert_model)
-        self.linear = nn.Linear(args.embedding_dim * 2, 1)
+        self.linear = nn.Linear(args.embedding_dim, 1)
 
     def wordDropout(self, ids):
         if self.training == False or self.args.word_dropout == 0:
@@ -28,18 +28,18 @@ class ReaderNet(nn.Module):
                     ids[i, j] = 100
         return ids
 
+    def encode(self, ids, segments, mask):
+        encoded_layers, pooled_output = self.bert(ids, segments, attention_mask=mask)
+        encoder = encoded_layers[-1][:, 0, :] + pooled_output
+        return encoder.view(encoder.size(0), 1, -1)
+
     def forward(self, inputs):
-        scores = []
-        for (i) in range(0, len(inputs), 3):
-            ids = self.wordDropout(inputs[i])
-            segments = inputs[i + 1]
-            mask = inputs[i + 2]
-            encoded_layers, pooled_output = self.bert(ids, segments, attention_mask=mask)
-            encoder1 = encoded_layers[-1][:, 0, :]
-            encoder2 = pooled_output
-            encoder = torch.cat([encoder1, encoder2], -1)
-            encoder = F.dropout(encoder, p=0.6, training=self.training)
-            score = self.linear(encoder)
-            scores.append(score)
-        return F.log_softmax(torch.cat(scores, 1), dim=-1)
+        encoder1 = self.encode(inputs[0], inputs[1], inputs[2])
+        encoder2 = self.encode(inputs[3], inputs[4], inputs[5])
+
+        encoder = torch.cat([encoder1, encoder2], 1)
+
+        scores = self.linear(encoder).view(-1, 2)
+
+        return F.log_softmax(scores, dim=-1)
 

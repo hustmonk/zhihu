@@ -35,7 +35,7 @@ class Reader(object):
         # thus it produce None grad that break apex
         def ignore(n):
             ignores = ['bert.embeddings', 'bert.encoder.layer.0.', 'bert.encoder.layer.1.',
-                       'bert.encoder.layer.2.', 'bert.encoder.layer.3.'
+                       'bert.encoder.layer.2.', 'bert.encoder.layer.3.', 'bert.encoder.layer.4.', 'bert.encoder.layer.5.'
                    ]
             for k in ignores:
                 if k in n[0]:

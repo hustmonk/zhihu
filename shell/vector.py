@@ -7,11 +7,12 @@ def to_idx_torch(answer, question, passage, tokenizer):
     answer = tokenizer.convert_tokens_to_ids(answer)
     question = tokenizer.convert_tokens_to_ids(question)
     passage = tokenizer.convert_tokens_to_ids(passage)
-    length = 3 + len(answer) + len(question) + len(passage)
+    special_size = 3
+    length = special_size + len(answer) + len(question) + len(passage)
     if length > 400:
-        tokens2length = 400 - 3 - len(answer) - len(question)
+        tokens2length = 400 - special_size - len(answer) - len(question)
         passage = passage[:tokens2length]
-    tokens1 = question + answer
+    tokens1 = answer + SEP + question
     tokens2 = passage
     ids = CLS + tokens1 + SEP + tokens2 + SEP
     segment_ids = [0] * (len(tokens1) + 2) + [1] * (len(tokens2) + 1)
