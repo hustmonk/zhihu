@@ -16,6 +16,7 @@ class ReaderNet(nn.Module):
         self.bert = BertModel.from_pretrained(args.bert_model)
         self.merge = 4
         self.linear = nn.Linear(int(args.embedding_dim), 1)
+        self.maskid = 100
 
     def wordDropout(self, ids):
         if self.training == False or self.args.word_dropout == 0:
@@ -26,7 +27,7 @@ class ReaderNet(nn.Module):
                 if ids[i, j] == 0:
                     break
                 if numpy.random.rand() < self.args.word_dropout:
-                    ids[i, j] = 100
+                    ids[i, j] = self.maskid
         return ids
 
     def encode(self, ids, segments, mask):

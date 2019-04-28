@@ -98,6 +98,10 @@ if __name__ == "__main__":
 
     if args.cuda:
         model.cuda()
+    MASK = tokenizer.convert_tokens_to_ids(["[MASK]"])
+
+    model.network.maskid = MASK[0]
+    logger.info('MASK:%d' % model.network.maskid)
 
     logger.info('=' * 60)
     psum = 0
