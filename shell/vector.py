@@ -1,16 +1,11 @@
 import torch, numpy, random
 
-def to_idx_torch(answer, question, passage, oanswer, tokenizer):
-    CLS = tokenizer.convert_tokens_to_ids(["[CLS]"])
-    SEP = tokenizer.convert_tokens_to_ids(["[SEP]"])
-
+def to_idx_torch(tokens1, tokens2, CLS, SEP):
     special_size = 3
-    length = special_size + len(answer) + len(question) + len(passage) + len(oanswer)
+    length = special_size + len(tokens1) + len(tokens2)
     if length > 400:
-        tokens2length = 400 - special_size - len(answer) - len(question) - len(oanswer)
-        passage = passage[:tokens2length]
-    tokens1 = answer + SEP + question
-    tokens2 = oanswer + SEP + passage
+        tokens2length = 400 - special_size - len(tokens1)
+        tokens2 = tokens2[:tokens2length]
     ids = CLS + tokens1 + SEP + tokens2 + SEP
     segment_ids = [0] * (len(tokens1) + 2) + [1] * (len(tokens2) + 1)
     return torch.LongTensor(ids), torch.LongTensor(segment_ids)
@@ -19,16 +14,19 @@ def vectorize(ex, tokenizer):
     questionid, scenario, passage, question, answer1, answer2, label = ex
 
     answer1 = tokenizer.convert_tokens_to_ids(answer1)
-    question = tokenizer.convert_tokens_to_ids(question)
     passage = tokenizer.convert_tokens_to_ids(passage)
+    question = tokenizer.convert_tokens_to_ids(question)
     answer2 = tokenizer.convert_tokens_to_ids(answer2)
 
-    answer1_ids, answer1_segment_ids = to_idx_torch(answer1, question, passage, answer2, tokenizer)
-    answer2_ids, answer2_segment_ids = to_idx_torch(answer2, question, passage, answer1, tokenizer)
-
+    CLS = tokenizer.convert_tokens_to_ids(["[CLS]"])
+    SEP = tokenizer.convert_tokens_to_ids(["[SEP]"])
+    answer1_ids, answer1_segment_ids = to_idx_torch(answer1 + SEP + question, passage, CLS, SEP)
+    answer2_ids, answer2_segment_ids = to_idx_torch(answer2 + SEP + question, passage, CLS, SEP)
+    qanswer1_ids, qanswer1_segment_ids = to_idx_torch(answer1, question, CLS, SEP)
+    qanswer2_ids, qanswer2_segment_ids = to_idx_torch(answer2, question, CLS, SEP)
     label = torch.LongTensor([label])
 
-    return [questionid, [answer1_ids, answer1_segment_ids, answer2_ids, answer2_segment_ids], label]
+    return [questionid, [answer1_ids, answer1_segment_ids, answer2_ids, answer2_segment_ids, qanswer1_ids, qanswer1_segment_ids, qanswer2_ids, qanswer2_segment_ids], label]
 
 def tomask(texts, segment_ids):
     # Batch questions
@@ -46,11 +44,15 @@ def batchify(batch):
     ids = [ex[0] for ex in batch]
     input_num = len(batch[0][1])
     inputs = [[ex[1][k] for ex in batch] for k in range(input_num)]
-    answer1, answer1_segment_ids, answer2, answer2_segment_ids = inputs
+    answer1, answer1_segment_ids, answer2, answer2_segment_ids, qanswer1, qanswer1_segment_ids, qanswer2, qanswer2_segment_ids = inputs
 
     targets = torch.cat([ex[2] for ex in batch])
 
     answer1, answer1_segment_ids, answer1_mask = tomask(answer1, answer1_segment_ids)
     answer2, answer2_segment_ids, answer2_mask = tomask(answer2, answer2_segment_ids)
 
-    return [ids, [answer1, answer1_segment_ids, answer1_mask, answer2, answer2_segment_ids, answer2_mask], targets]
+    qanswer1, qanswer1_segment_ids, qanswer1_mask = tomask(qanswer1, qanswer1_segment_ids)
+    qanswer2, qanswer2_segment_ids, qanswer2_mask = tomask(qanswer2, qanswer2_segment_ids)
+
+    return [ids, [answer1, answer1_segment_ids, answer1_mask, answer2, answer2_segment_ids, answer2_mask,
+                  qanswer1, qanswer1_segment_ids, qanswer1_mask, qanswer2, qanswer2_segment_ids, qanswer2_mask], targets]
