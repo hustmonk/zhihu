@@ -31,7 +31,7 @@ class ReaderNet(nn.Module):
 
     def encode(self, ids, segments, mask):
         encoded_layers, pooled_output = self.bert(ids, segments, attention_mask=mask)
-        encoder = encoded_layers[-1][:, 0, :] + pooled_output
+        encoder = encoded_layers[-1][:, 0, :]
         return encoder.view(encoder.size(0), 1, -1)
 
     def forward(self, inputs):
