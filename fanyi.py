@@ -9,7 +9,7 @@ keys = set()
 if os.path.exists(cachefile):
     for line in open(cachefile):
         arr = line.strip().split("\t")
-        if len(arr) == 0:
+        if len(arr) == 0 or arr[0] in keys:
             continue
         keys.add(arr[0])
         fout.write(line)
