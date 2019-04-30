@@ -98,10 +98,6 @@ if __name__ == "__main__":
 
     if args.cuda:
         model.cuda()
-    MASK = tokenizer.convert_tokens_to_ids(["[MASK]"])
-
-    model.network.maskid = MASK[0]
-    logger.info('MASK:%d' % model.network.maskid)
 
     logger.info('=' * 60)
     psum = 0
@@ -110,7 +106,8 @@ if __name__ == "__main__":
     logger.info('Network total parameters ' + str(psum))
     logger.info('=' * 60)
 
-    train_dataset = ReaderDataset(train_exs, tokenizer)
+    mockdataset = MockDataset(os.path.join(args.data_dir, args.mock_file), tokenizer)
+    train_dataset = ReaderDataset(train_exs, tokenizer, mockdataset)
     dev_dataset = ReaderDataset(dev_exs, tokenizer)
     train_loader = torch.utils.data.DataLoader(
         train_dataset,
@@ -145,8 +142,10 @@ if __name__ == "__main__":
     for epoch in range(start_epoch, args.num_epochs):
         stats['epoch'] = epoch
         # Train
+        train_dataset.training = True
         train(args, train_loader, model, stats)
 
+        train_dataset.training = False
         result = validate(train_loader, model, stats['epoch'], "train")
         result = validate(dev_loader, model, stats['epoch'], "dev")
 

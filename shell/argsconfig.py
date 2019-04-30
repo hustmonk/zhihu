@@ -52,6 +52,8 @@ def initargs():
                        help='Directory of training/validation data')
     files.add_argument('--train-file', type=str,
                        default='train-data.xml', help='train file')
+    files.add_argument('--mock-file', type=str,
+                       default='train-data.out.txt', help='mock train file')
     files.add_argument('--dev-file', type=str,
                        default='dev-data.xml', help='dev file')
 

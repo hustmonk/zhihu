@@ -27,16 +27,72 @@ def loadxml(filename, tokenizer):
             dataset.append(data)
     return dataset
 
+class MockDataset():
+    def __init__(self, filename, tokenizer):
+        passages = {}
+        self.question = {}
+        self.firstanswer = {}
+        self.secondanswer = {}
+        for line in open(filename):
+            arr = line.strip().split("\t")
+            keys = arr[0].split("_")
+            passageid = keys[0]
+            if keys[1] == 'p':
+                if passageid not in passages:
+                    passages[passageid] = []
+                passages[passageid].append([int(keys[2]), arr[1]])
+                continue
+            elif keys[1] == 's':
+                continue
+            tokens = tokenizer.tokenize(arr[1])
+            questionid = passageid + "_" + keys[1]
+            if keys[2] == 'q':
+                self.question[questionid] = tokens
+            elif keys[2] == 'a':
+                if keys[3] == '0':
+                    self.firstanswer[questionid] = tokens
+                else:
+                    self.secondanswer[questionid] = tokens
+        self.passages = {}
+
+        for (passageid, passageinfo) in passages.items():
+            passageinfo = sorted(passageinfo)
+            self.passages[passageid] = tokenizer.tokenize(" ".join([k[1] for k in passageinfo]))
+
+    def mock(self, example):
+        ratio = 0.3
+        questionid, scenario, passage, question, answer1, answer2, label = example
+        if questionid not in self.question:
+            return example
+        if np.random.rand() < ratio:
+            passageid = questionid.split("_")[0]
+            passage = self.passages.get(passageid, passage)
+        if np.random.rand() < ratio:
+            question = self.question.get(questionid, question)
+        if np.random.rand() < ratio:
+            answer1 = self.firstanswer.get(questionid, answer1)
+        if np.random.rand() < ratio:
+            answer2 = self.secondanswer.get(questionid, answer2)
+
+        example = [questionid, scenario, passage, question, answer1, answer2, label]
+
+        return example
+
 class ReaderDataset(Dataset):
-    def __init__(self, examples, tokenizer):
+    def __init__(self, examples, tokenizer, mockdataset=None, training=False):
         self.tokenizer = tokenizer
         self.examples = examples
+        self.mockdataset = mockdataset
+        self.training = training
 
     def __len__(self):
         return len(self.examples)
 
     def __getitem__(self, index):
-        return vectorize(self.examples[index], self.tokenizer)
+        example = self.examples[index]
+        if self.training and self.mockdataset is not None:
+            example = self.mockdataset.mock(example)
+        return vectorize(example, self.tokenizer, self.training)
 
 class Dictionary(object):
     NULL = '<NULL>'

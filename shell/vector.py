@@ -10,13 +10,21 @@ def to_idx_torch(tokens1, tokens2, CLS, SEP):
     segment_ids = [0] * (len(tokens1) + 2) + [1] * (len(tokens2) + 1)
     return torch.LongTensor(ids), torch.LongTensor(segment_ids)
 
-def vectorize(ex, tokenizer):
+def vectorize(ex, tokenizer, training):
     questionid, scenario, passage, question, answer1, answer2, label = ex
+    MASK = tokenizer.convert_tokens_to_ids(["[MASK]"])
+    word_dropout = 0.1
+    def worddropout(context):
+        if training and word_dropout > 0:
+            for j in range(len(context)):
+                if numpy.random.rand() < word_dropout:
+                    context[j] = MASK[0]
+        return context
 
-    answer1 = tokenizer.convert_tokens_to_ids(answer1)
-    passage = tokenizer.convert_tokens_to_ids(passage)
-    question = tokenizer.convert_tokens_to_ids(question)
-    answer2 = tokenizer.convert_tokens_to_ids(answer2)
+    answer1 = worddropout(tokenizer.convert_tokens_to_ids(answer1))
+    passage = worddropout(tokenizer.convert_tokens_to_ids(passage))
+    question = worddropout(tokenizer.convert_tokens_to_ids(question))
+    answer2 = worddropout(tokenizer.convert_tokens_to_ids(answer2))
 
     CLS = tokenizer.convert_tokens_to_ids(["[CLS]"])
     SEP = tokenizer.convert_tokens_to_ids(["[SEP]"])
