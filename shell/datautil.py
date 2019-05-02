@@ -60,7 +60,7 @@ class MockDataset():
             self.passages[passageid] = tokenizer.tokenize(" ".join([k[1] for k in passageinfo]))
 
     def mock(self, example):
-        ratio = 0.3
+        ratio = 0.1
         questionid, scenario, passage, question, answer1, answer2, label = example
         if questionid not in self.question:
             return example

@@ -30,8 +30,8 @@ def vectorize(ex, tokenizer, training):
     SEP = tokenizer.convert_tokens_to_ids(["[SEP]"])
     answer1_ids, answer1_segment_ids = to_idx_torch(answer1 + SEP + question, passage, CLS, SEP)
     answer2_ids, answer2_segment_ids = to_idx_torch(answer2 + SEP + question, passage, CLS, SEP)
-    qanswer1_ids, qanswer1_segment_ids = to_idx_torch(answer1, question, CLS, SEP)
-    qanswer2_ids, qanswer2_segment_ids = to_idx_torch(answer2, question, CLS, SEP)
+    qanswer1_ids, qanswer1_segment_ids = to_idx_torch(answer1, question + SEP + answer2, CLS, SEP)
+    qanswer2_ids, qanswer2_segment_ids = to_idx_torch(answer2, question + SEP + answer1, CLS, SEP)
     label = torch.LongTensor([label])
 
     return [questionid, [answer1_ids, answer1_segment_ids, answer2_ids, answer2_segment_ids, qanswer1_ids, qanswer1_segment_ids, qanswer2_ids, qanswer2_segment_ids], label]
