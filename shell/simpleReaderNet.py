@@ -16,6 +16,8 @@ class ReaderNet(nn.Module):
         self.bert = BertModel.from_pretrained(args.bert_model)
         self.merge = 4
         self.linear = nn.Linear(int(args.embedding_dim), 1)
+        self.answer_self_attn = layers.LinearSeqAttn(args.embedding_dim)
+
         self.maskid = 100
 
     def wordDropout(self, ids):
@@ -30,14 +32,17 @@ class ReaderNet(nn.Module):
                     ids[i, j] = self.maskid
         return ids
 
-    def encode(self, ids, segments, mask):
+    def encode(self, info):
+        ids, segments, mask, core = info
+
         encoded_layers, pooled_output = self.bert(ids, segments, attention_mask=mask)
-        encoder = encoded_layers[-1][:, 0, :]
+        self_encoder = self.answer_self_attn(encoded_layers[-1], core)
+        encoder = encoded_layers[-1][:, 0, :] + self_encoder
         return encoder.view(encoder.size(0), 1, -1)
 
     def forward(self, inputs):
-        encoder1 = self.encode(inputs[0], inputs[1], inputs[2]) + self.encode(inputs[6], inputs[7], inputs[8])
-        encoder2 = self.encode(inputs[3], inputs[4], inputs[5]) + self.encode(inputs[9], inputs[10], inputs[11])
+        encoder1 = self.encode(inputs[0]) + self.encode(inputs[2])
+        encoder2 = self.encode(inputs[1]) + self.encode(inputs[3])
 
         encoder = torch.cat([encoder1, encoder2], 1)
         scores = self.linear(encoder).view(-1, 2)

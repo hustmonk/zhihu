@@ -1,14 +1,15 @@
 import torch, numpy, random
 
-def to_idx_torch(tokens1, tokens2, CLS, SEP):
+def to_idx_torch(tokens1, tokens2, CLS, SEP, lenanswer):
     special_size = 3
     length = special_size + len(tokens1) + len(tokens2)
     if length > 400:
         tokens2length = 400 - special_size - len(tokens1)
         tokens2 = tokens2[:tokens2length]
-    ids = CLS + tokens1 + SEP + tokens2 + SEP
-    segment_ids = [0] * (len(tokens1) + 2) + [1] * (len(tokens2) + 1)
-    return torch.LongTensor(ids), torch.LongTensor(segment_ids)
+    ids = torch.LongTensor(CLS + tokens1 + SEP + tokens2 + SEP)
+    segment_ids = torch.LongTensor([0] * (len(tokens1) + 2) + [1] * (len(tokens2) + 1))
+    answer_core_mask = torch.LongTensor([0] * (lenanswer + 1))
+    return ids, segment_ids, answer_core_mask
 
 def vectorize(ex, tokenizer):
     questionid, scenario, passage, question, answer1, answer2, label = ex
@@ -20,39 +21,47 @@ def vectorize(ex, tokenizer):
 
     CLS = tokenizer.convert_tokens_to_ids(["[CLS]"])
     SEP = tokenizer.convert_tokens_to_ids(["[SEP]"])
-    answer1_ids, answer1_segment_ids = to_idx_torch(answer1 + SEP + question, passage, CLS, SEP)
-    answer2_ids, answer2_segment_ids = to_idx_torch(answer2 + SEP + question, passage, CLS, SEP)
-    qanswer1_ids, qanswer1_segment_ids = to_idx_torch(answer1, question, CLS, SEP)
-    qanswer2_ids, qanswer2_segment_ids = to_idx_torch(answer2, question, CLS, SEP)
+    answer1_info = to_idx_torch(answer1 + SEP + question, passage, CLS, SEP, len(answer1))
+    answer2_info = to_idx_torch(answer2 + SEP + question, passage, CLS, SEP, len(answer2))
+    qanswer1_info = to_idx_torch(answer1, question, CLS, SEP, len(answer1))
+    qanswer2_info = to_idx_torch(answer2, question, CLS, SEP, len(answer2))
     label = torch.LongTensor([label])
 
-    return [questionid, [answer1_ids, answer1_segment_ids, answer2_ids, answer2_segment_ids, qanswer1_ids, qanswer1_segment_ids, qanswer2_ids, qanswer2_segment_ids], label]
+    return [questionid, [answer1_info, answer2_info, qanswer1_info, qanswer2_info], label]
 
-def tomask(texts, segment_ids):
+def tomask(info):
+    ids, segment_ids, answer_core_mask = info
     # Batch questions
-    max_length = max([q.size(0) for q in texts])
-    x = torch.LongTensor(len(texts), max_length).zero_()
-    x_segments = torch.LongTensor(len(texts), max_length).zero_()
-    x_mask = torch.ByteTensor(len(texts), max_length).fill_(0)
-    for i, q in enumerate(texts):
+    max_length = max([q.size(0) for q in ids])
+    x = torch.LongTensor(len(ids), max_length).zero_()
+    x_segments = torch.LongTensor(len(ids), max_length).zero_()
+    x_mask = torch.ByteTensor(len(ids), max_length).fill_(0)
+    x_core = torch.ByteTensor(len(ids), max_length).fill_(1)
+    for i, q in enumerate(ids):
         x[i, :q.size(0)].copy_(q)
         x_segments[i, :q.size(0)].copy_(segment_ids[i])
         x_mask[i, :q.size(0)].fill_(1)
-    return x, x_segments, x_mask
+        x_core[i, :len(answer_core_mask[i])].copy_(answer_core_mask[i])
+
+    return x, x_segments, x_mask, x_core
 
 def batchify(batch):
     ids = [ex[0] for ex in batch]
-    input_num = len(batch[0][1])
-    inputs = [[ex[1][k] for ex in batch] for k in range(input_num)]
-    answer1, answer1_segment_ids, answer2, answer2_segment_ids, qanswer1, qanswer1_segment_ids, qanswer2, qanswer2_segment_ids = inputs
+    num1 = len(batch[0][1])
+    inputs = []
+    for i in range(num1):
+        num2 = len(batch[0][1][0])
+        info = [[ex[1][i][k] for ex in batch] for k in range(num2)]
+        inputs.append(info)
+
+    answer1_info, answer2_info, qanswer1_info, qanswer2_info = inputs
 
     targets = torch.cat([ex[2] for ex in batch])
 
-    answer1, answer1_segment_ids, answer1_mask = tomask(answer1, answer1_segment_ids)
-    answer2, answer2_segment_ids, answer2_mask = tomask(answer2, answer2_segment_ids)
+    answer1_info = tomask(answer1_info)
+    answer2_info = tomask(answer2_info)
 
-    qanswer1, qanswer1_segment_ids, qanswer1_mask = tomask(qanswer1, qanswer1_segment_ids)
-    qanswer2, qanswer2_segment_ids, qanswer2_mask = tomask(qanswer2, qanswer2_segment_ids)
+    qanswer1_info = tomask(qanswer1_info)
+    qanswer2_info = tomask(qanswer2_info)
 
-    return [ids, [answer1, answer1_segment_ids, answer1_mask, answer2, answer2_segment_ids, answer2_mask,
-                  qanswer1, qanswer1_segment_ids, qanswer1_mask, qanswer2, qanswer2_segment_ids, qanswer2_mask], targets]
+    return [ids, [answer1_info, answer2_info, qanswer1_info, qanswer2_info], targets]
