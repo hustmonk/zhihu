@@ -4,6 +4,7 @@ from shell.Reader import Reader
 from shell import utils
 from shell import vector
 import torch, json
+from pytorch_pretrained_bert import BertTokenizer, BertModel, BertForMaskedLM
 
 iter_counter = 0
 
@@ -32,24 +33,29 @@ def train(args, data_loader, model, global_stats):
     logger.info('train: Epoch %d done. Time for epoch = %.2f (s)' %
                 (global_stats['epoch'], epoch_time.time()))
 
-def validate(args, data_loader, model, epoch):
+def validate(data_loader, model, epoch, data_type):
     eval_time = utils.Timer()
     # Run through examples
     ids = []
     preds = []
     targets = []
+    fout = open(data_type + "." + str(epoch) + ".bad.ids.txt", "w")
     for ex in data_loader:
         ids, inputs, target = ex
         pred = model.predict(inputs)
+        target = target.numpy().tolist()
         preds += pred
-        targets += target.numpy().tolist()
+        targets += target
+        for (id, p, t) in zip(ids, pred, target):
+            if p != t:
+                fout.write(id + "\n")
         if torch.cuda.is_available() == False:
             break
-
+    fout.close()
     right = 1.0 * sum([1 for (p, t) in zip(preds, targets) if p == t]) / len(preds)
 
-    logger.info('dev: Epoch = %d | precision = %.4f | examples = %d/%d | valid time = %.2f (s)' %
-                (epoch, right, len(targets), len(data_loader), eval_time.time()))
+    logger.info('%s: Epoch = %d | precision = %.4f | examples = %d/%d | valid time = %.2f (s)' %
+                (data_type, epoch, right, len(targets), len(data_loader), eval_time.time()))
     return right
 
 if __name__ == "__main__":
@@ -60,18 +66,27 @@ if __name__ == "__main__":
     args.cuda = not args.no_cuda and torch.cuda.is_available()
     if args.cuda:
         torch.cuda.set_device(args.gpu)
+    if torch.cuda.is_available() == False:
+        args.test_batch_size = 6
+        args.batch_size = 6
+    if args.bert_uncased:
+        args.bert_vocab = args.bert_base_uncased_vocab
+        args.bert_model = args.bert_base_uncased
+    else:
+        args.bert_vocab = args.bert_base_cased_vocab
+        args.bert_model = args.bert_base_cased
 
     logger = setlogger(args.log_file, args.checkpoint)
 
-    train_exs = loadxml(os.path.join(args.data_dir, args.train_file))
-    dev_exs = loadxml(os.path.join(args.data_dir, args.dev_file))
+    tokenizer = BertTokenizer.from_pretrained(args.bert_vocab)
+    train_exs = loadxml(os.path.join(args.data_dir, args.train_file), tokenizer)
+    dev_exs = loadxml(os.path.join(args.data_dir, args.dev_file), tokenizer)
 
     logger.info("train:%d dev:%d" % (len(train_exs), len(dev_exs)))
     # --------------------------------------------------------------------------
     # MODEL
     logger.info('-' * 100)
     start_epoch = 0
-    word_dict = build_word_dict(train_exs + dev_exs)
 
     if args.pretrained:
         # Just resume training, no modifications.
@@ -80,10 +95,13 @@ if __name__ == "__main__":
     else:
         logger.info('Training model from scratch...')
         model = Reader(args)
-    model.load_pretrained_dict(word_dict)
 
     if args.cuda:
         model.cuda()
+    MASK = tokenizer.convert_tokens_to_ids(["[MASK]"])
+
+    model.network.maskid = MASK[0]
+    logger.info('MASK:%d' % model.network.maskid)
 
     logger.info('=' * 60)
     psum = 0
@@ -92,8 +110,8 @@ if __name__ == "__main__":
     logger.info('Network total parameters ' + str(psum))
     logger.info('=' * 60)
 
-    train_dataset = ReaderDataset(train_exs, model)
-    dev_dataset = ReaderDataset(dev_exs, model)
+    train_dataset = ReaderDataset(train_exs, tokenizer)
+    dev_dataset = ReaderDataset(dev_exs, tokenizer)
     train_loader = torch.utils.data.DataLoader(
         train_dataset,
         batch_size = args.batch_size,
@@ -126,13 +144,11 @@ if __name__ == "__main__":
 
     for epoch in range(start_epoch, args.num_epochs):
         stats['epoch'] = epoch
-        model.set_training(True)
         # Train
         train(args, train_loader, model, stats)
 
-        model.set_training(False)
-
-        result = validate(args, dev_loader, model, stats['epoch'])
+        result = validate(train_loader, model, stats['epoch'], "train")
+        result = validate(dev_loader, model, stats['epoch'], "dev")
 
         if result > stats['best_valid']:
             logger.info('Best valid: %.4f -> %.4f (epoch %d, %d updates)' %

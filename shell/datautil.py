@@ -4,47 +4,39 @@ from torch.utils.data import Dataset
 from shell.vector import vectorize
 import numpy as np
 import unicodedata
-import nltk
 
-def tokenize(sentence):
-    sentence = " ".join(nltk.word_tokenize(sentence))
-    return sentence
-
-def loadxml(filename):
+def loadxml(filename, tokenizer):
     root = ET.parse(filename).getroot()
     dataset = []
     for instance in root:
         id = instance.attrib["id"]
-        scenario = instance.attrib["scenario"]
-        passage = instance.find("text").text
-        for question in instance.find("questions"):
-            questionid = question.attrib["id"]
-            questiontext = tokenize(question.attrib["text"])
+        scenario = tokenizer.tokenize(instance.attrib["scenario"])
+        passage = tokenizer.tokenize(instance.find("text").text)
+        for questioninfo in instance.find("questions"):
+            questionid = id + "_" + questioninfo.attrib["id"]
+            question = tokenizer.tokenize(questioninfo.attrib["text"])
             answers = []
             label = 0
-            for (i, answer) in enumerate(question):
+            for (i, answer) in enumerate(questioninfo):
                 answers.append(answer.attrib["text"])
                 if i == 1 and answer.attrib["correct"] == "True":
                     label = 1
-            answer1 = tokenize(answers[0])
-            answer2 = tokenize(answers[1])
-            #print("Q:" + questiontext)
-            #print("A1:" + answer1)
-            #print("A2:" + answer2)
-            data = [questionid, scenario, passage, questiontext, answer1, answer2, label]
+            answer1 = tokenizer.tokenize(answers[0])
+            answer2 = tokenizer.tokenize(answers[1])
+            data = [questionid, scenario, passage, question, answer1, answer2, label]
             dataset.append(data)
     return dataset
 
 class ReaderDataset(Dataset):
-    def __init__(self, examples, model):
-        self.model = model
+    def __init__(self, examples, tokenizer):
+        self.tokenizer = tokenizer
         self.examples = examples
 
     def __len__(self):
         return len(self.examples)
 
     def __getitem__(self, index):
-        return vectorize(self.examples[index], self.model)
+        return vectorize(self.examples[index], self.tokenizer)
 
 class Dictionary(object):
     NULL = '<NULL>'

@@ -3,67 +3,48 @@ import torch.nn as nn
 import logging
 from shell import layers
 import torch.nn.functional as F
+from pytorch_pretrained_bert import BertTokenizer, BertModel
+from pytorch_pretrained_bert.modeling import BertPreTrainedModel
+import numpy
 
 logger = logging.getLogger(__name__)
-
-class AnswerLayer(nn.Module):
-    def __init__(self, args):
-        super(AnswerLayer, self).__init__()
-        self.args = args
-        #answer info
-        self.answer_match1 = layers.SeqAttnMatch(args.embedding_dim)
-        self.answer_match2 = layers.SeqAttnMatch(args.hidden_size * 2)
-        self.answer_match3 = layers.SeqAttnMatch(args.hidden_size * 2)
-
-        self.answer_lstm1 = layers.StackedBRNN(input_size=args.embedding_dim, hidden_size=args.hidden_size)
-        self.scorer1 = layers.ScoreLayer(args.hidden_size * 2)
-
-    def forward(self, passageinfo, passage_mask, answer, answer_mask):
-        passage, passage1 = passageinfo
-
-        match = self.answer_match1(answer, passage, passage_mask)
-        weight = 0.3
-        answer0 = match * weight + answer * (1 - weight)
-        answer1 = self.answer_lstm1(answer0, answer_mask)
-        score1 = self.scorer1(passage1, passage_mask, answer1, answer_mask)
-        return score1
 
 class ReaderNet(nn.Module):
     def __init__(self, args):
         super(ReaderNet, self).__init__()
-
         self.args = args
+        self.bert = BertModel.from_pretrained(args.bert_model)
+        self.merge = 4
+        self.linear = nn.Linear(int(args.embedding_dim), 1)
+        self.answer_self_attn = layers.LinearSeqAttn(args.embedding_dim)
 
-        #first layer
-        self.question_match1 = layers.SeqAttnMatch(args.embedding_dim)
-        self.questioninfo_match1 = layers.SeqAttnMatch(args.embedding_dim)
-        self.passage_lstm1 = layers.StackedBRNN(input_size=args.embedding_dim, hidden_size=args.hidden_size)
-        self.question_lstm1 = layers.StackedBRNN(input_size=args.embedding_dim, hidden_size=args.hidden_size)
-        self.questioninfo_lstm1 = layers.StackedBRNN(input_size=args.embedding_dim, hidden_size=args.hidden_size)
+        self.maskid = 100
+
+    def wordDropout(self, ids):
+        if self.training == False or self.args.word_dropout == 0:
+            return ids
+
+        for i in range(ids.size(0)):
+            for j in range(30, ids.size(1)):
+                if ids[i, j] == 0:
+                    break
+                if numpy.random.rand() < self.args.word_dropout:
+                    ids[i, j] = self.maskid
+        return ids
+
+    def encode(self, info):
+        ids, segments, mask, core = info
+
+        encoded_layers, pooled_output = self.bert(ids, segments, attention_mask=mask)
+        self_encoder = self.answer_self_attn(encoded_layers[-1], core)
+        encoder = encoded_layers[-1][:, 0, :] + self_encoder
+        return encoder.view(encoder.size(0), 1, -1)
 
     def forward(self, inputs):
-        passage, passage_mask, question, question_mask, questioninfo, questioninfo_mask, \
-            answer1, answer1_mask, answer2, answer2_mask, qanswer1, qanswer1_mask, qanswer2, qanswer2_mask = inputs
+        encoder1 = self.encode(inputs[0]) + self.encode(inputs[2])
+        encoder2 = self.encode(inputs[1]) + self.encode(inputs[3])
 
-        #first layer
-        match1 = self.question_match1(passage, question, question_mask)
-        match2 = self.questioninfo_match1(passage, questioninfo, questioninfo_mask)
-        passage0 = passage + match1 + match2
-        passage1 = self.passage_lstm1(passage0, passage_mask)
-        question1 = self.question_lstm1(question, question_mask)
-        questioninfo1 = self.questioninfo_lstm1(questioninfo, questioninfo_mask)
-
-        #finnaly passage information
-        passageinfo = [passage, passage1]
-
-        #answer info
-        answer1 = self.answer(passageinfo, passage_mask, answer1, answer1_mask)
-        answer2 = self.answer(passageinfo, passage_mask, answer2, answer2_mask)
-        qanswer1 = self.qanswer(passageinfo, passage_mask, qanswer1, qanswer1_mask)
-        qanswer2 = self.qanswer(passageinfo, passage_mask, qanswer2, qanswer2_mask)
-
-        answer = torch.cat([answer1 + qanswer1, answer2 + qanswer2], 1)
-        answer = F.log_softmax(answer, dim=-1)
-
-        return answer
+        encoder = torch.cat([encoder1, encoder2], 1)
+        scores = self.linear(encoder).view(-1, 2)
+        return F.log_softmax(scores, dim=-1)
 

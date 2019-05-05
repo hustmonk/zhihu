@@ -114,7 +114,7 @@ class ReaderNet(nn.Module):
         qanswer2 = self.qanswer(passageinfo, passage_mask, qanswer2, qanswer2_mask)
 
         answer = torch.cat([answer1 + qanswer1, answer2 + qanswer2], 1)
-        answer = F.log_softmax(answer, dim=-1)
+        #answer = F.log_softmax(answer, dim=-1)
 
         return answer
 

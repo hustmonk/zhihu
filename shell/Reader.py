@@ -4,10 +4,10 @@ import logging
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
-from .ReaderNet import ReaderNet
-from .pretraineddatalayers import PretrainedDataLayers
+from .simpleReaderNet import ReaderNet
 import numpy
 from torch.autograd import Variable
+from pytorch_pretrained_bert.optimization import BertAdam, warmup_linear
 
 logger = logging.getLogger(__name__)
 
@@ -26,24 +26,33 @@ class Reader(object):
         self.training = False
         self.use_cuda = False
 
-        self.pretraindatalayers = PretrainedDataLayers(args)
         self.network = ReaderNet(args)
-        if state_dict:
-            self.network.load_state_dict(state_dict)
 
-        parameters = [p for p in self.network.parameters() if p.requires_grad]
+        #set optimizer
+        param_optimizer = list(self.network.named_parameters())
 
-        self.optimizer = torch.optim.Adam(parameters)
+        # hack to remove pooler, which is not used
+        # thus it produce None grad that break apex
+        def ignore(n):
+            ignores = ['bert.embeddings', 'bert.encoder.layer.0.', 'bert.encoder.layer.1.',
+                       'bert.encoder.layer.2.', 'bert.encoder.layer.3.', 'bert.encoder.layer.4.', 'bert.encoder.layer.5.'
+                   ]
+            for k in ignores:
+                if k in n[0]:
+                    return True
+            return False
+        param_optimizer = [n for n in param_optimizer if ignore(n) == False]
 
-    def set_training(self, training = False):
-        self.training = training
-
-    def load_pretrained_dict(self, words_dict):
-        self.word_dict = words_dict
-        self.pretraindatalayers.load_pretrained_dict(words_dict)
-        for idx, m in enumerate(self.network.named_modules()):
-            logger.info('NETWORK_GRAPH:\n%s' % str(m))
-            break
+        no_decay = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']
+        optimizer_grouped_parameters = [
+            {'params': [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)], 'weight_decay': 0.01},
+            {'params': [p for n, p in param_optimizer if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}
+        ]
+        num_train_optimization_steps = 10000/args.batch_size * 10
+        self.optimizer = BertAdam(optimizer_grouped_parameters,
+                             lr=args.learning_rate,
+                             warmup=args.warmup_proportion,
+                             t_total=num_train_optimization_steps)
 
     # --------------------------------------------------------------------------
     # Learning
@@ -66,10 +75,7 @@ class Reader(object):
             raise RuntimeError('No optimizer set.')
 
         # Train mode
-        self.pretraindatalayers.train()
         self.network.train()
-
-        inputs = self.pretraindatalayers(inputs)
 
         # Run forward
         scores = self.network(inputs)
@@ -103,11 +109,7 @@ class Reader(object):
         else:
             inputs = [e if e is None or torch.is_tensor(e) == False else Variable(e) for e in inputs]
         # Eval mode
-        self.pretraindatalayers.eval()
         self.network.eval()
-
-        # Run forward
-        inputs = self.pretraindatalayers(inputs)
 
         # Run forward
         scores = self.network(inputs)
@@ -144,18 +146,5 @@ class Reader(object):
 
     def cuda(self):
         self.use_cuda = True
-        self.pretraindatalayers = self.pretraindatalayers.cuda()
         self.network = self.network.cuda()
-
-    def cpu(self):
-        self.use_cuda = False
-        self.pretraindatalayers = self.pretraindatalayers.cpu()
-        self.network = self.network.cpu()
-
-    def parallelize(self):
-        """Use data parallel to copy the model across several gpus.
-        This will take all gpus visible with CUDA_VISIBLE_DEVICES.
-        """
-        self.parallel = True
-        self.network = torch.nn.DataParallel(self.network)
 

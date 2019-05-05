@@ -14,7 +14,7 @@ class StackedBRNN(nn.Module):
     """
 
     def __init__(self, input_size, hidden_size, num_layers = 1,
-                 dropout_rate=0.4, dropout_output=True, rnn_type=nn.LSTM,
+                 dropout_rate=0.2, dropout_output=True, rnn_type=nn.LSTM,
                  concat_layers=False, padding=False):
         super(StackedBRNN, self).__init__()
         self.padding = padding
@@ -268,13 +268,14 @@ class ScoreLayer(nn.Module):
 
     def __init__(self, input_size):
         super(ScoreLayer, self).__init__()
-        self.answer_self_attn = LinearSeqAttn(input_size)
-        self.passage_self_attn = LinearSeqAttn(input_size)
-        self.linear = nn.Linear(input_size, input_size)
+        self.linear = nn.Linear(input_size, PROJECTION_SIZE)
+
+        self.answer_self_attn = LinearSeqAttn(PROJECTION_SIZE)
+        self.passage_self_attn = LinearSeqAttn(PROJECTION_SIZE)
 
     def forward(self, passage, passage_mask, answer, answer_mask):
-        answer = F.relu(self.linear(answer))
-        passage = F.relu(self.linear(passage))
+        answer = F.tanh(self.linear(answer))
+        passage = F.tanh(self.linear(passage))
         answer = self.answer_self_attn(answer, answer_mask).unsqueeze(1)
         passage = self.passage_self_attn(passage, passage_mask)
 

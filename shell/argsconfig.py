@@ -34,11 +34,11 @@ def initargs():
     runtime.add_argument('--random-seed', type=int, default=1013,
                          help=('Random seed for all numpy/torch/cuda '
                                'operations (for reproducibility)'))
-    runtime.add_argument('--num-epochs', type=int, default=30,
+    runtime.add_argument('--num-epochs', type=int, default=5,
                          help='Train data iterations')
-    runtime.add_argument('--batch-size', type=int, default=32,
+    runtime.add_argument('--batch-size', type=int, default=6,
                          help='Batch size for training')
-    runtime.add_argument('--test-batch-size', type=int, default=128,
+    runtime.add_argument('--test-batch-size', type=int, default=6,
                          help='Batch size during validation/testing')
     runtime.add_argument('--display-iter', type=int, default=10,
                          help='Batch size during validation/testing')
@@ -71,18 +71,25 @@ def initargs():
                        help='Space-separated pretrained embeddings file')
 
     pretrainedfiles.add_argument('--glove-embedding-dim', type=int, default= 300)
-    pretrainedfiles.add_argument('--embedding-dim', type=int, default= 900)
+    pretrainedfiles.add_argument('--embedding-dim', type=int, default= 768)
     pretrainedfiles.add_argument('--use-cove', type='bool', default=False)
     pretrainedfiles.add_argument('--score-type', type=int, default=0)
 
-    pretrainedfiles.add_argument('--cove-file', type=str,
-                       default=WORK_SPACE + '/data/wmtlstm-b142a7f2.pth',
-                       help='Space-separated pretrained cove file')
 
+    pretrainedfiles.add_argument('--bert-base-uncased-vocab', type=str,
+                       default=WORK_SPACE + '/data/bert-base-uncased-vocab.txt')
+    pretrainedfiles.add_argument('--bert-base-uncased', type=str,
+                       default=WORK_SPACE + '/data/bert-base-uncased.tar.gz')
+    pretrainedfiles.add_argument('--bert-base-cased-vocab', type=str,
+                       default=WORK_SPACE + '/data/bert-base-cased-vocab.txt')
+    pretrainedfiles.add_argument('--bert-base-cased', type=str,
+                       default=WORK_SPACE + '/data/bert-base-cased.tar.gz')
+    pretrainedfiles.add_argument('--bert-uncased', type='bool', default=True,
+                         help='choose bert model.')
     model = parser.add_argument_group('Reader Model Architecture')
     model.add_argument('--hidden-size', type=int, default=125,
                        help='Hidden size of RNN units')
-    model.add_argument('--learning-rate', type=float, default=2e-3,
+    model.add_argument('--learning-rate', type=float, default=5e-5,
                        help='Learning rate for SGD only')
     model.add_argument('--grad-clipping', type=float, default=10,
                        help='Gradient clipping')
@@ -90,6 +97,11 @@ def initargs():
                        help='Weight decay factor')
     model.add_argument('--momentum', type=float, default=0,
                        help='Momentum factor')
+    model.add_argument('--word-dropout', type=float, default=0.1,
+                       help='Momentum factor')
+    model.add_argument("--warmup_proportion", default=0.1, type=float,
+                        help="Proportion of training to perform linear learning rate warmup for. E.g., 0.1 = 10%% "
+                             "of training.")
     args = parser.parse_args()
     return args
 

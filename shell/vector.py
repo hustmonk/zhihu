@@ -1,50 +1,67 @@
 import torch, numpy, random
-def vectorize(ex, model):
-    questionid, scenario, passage, questiontext, answer1, answer2, label = ex
-    word_dict = model.word_dict
-    passage = torch.LongTensor([word_dict[w] for w in passage.split(" ")])
-    question = torch.LongTensor([word_dict[w] for w in questiontext.split(" ")])
-    answer1 = torch.LongTensor([word_dict[w] for w in answer1.split(" ")])
-    answer2 = torch.LongTensor([word_dict[w] for w in answer2.split(" ")])
-    blank = torch.LongTensor([word_dict['.']])
-    k = [answer1, answer2]
-    random.shuffle(k)
-    k = [question, k[0], blank, k[1], blank]
-    questioninfo = torch.cat(k, -1)
 
-    qanswer1 = torch.cat([question, answer1], -1)
-    qanswer2 = torch.cat([question, answer2], -1)
+def to_idx_torch(tokens1, tokens2, CLS, SEP, lenanswer):
+    special_size = 3
+    length = special_size + len(tokens1) + len(tokens2)
+    if length > 400:
+        tokens2length = 400 - special_size - len(tokens1)
+        tokens2 = tokens2[:tokens2length]
+    ids = torch.LongTensor(CLS + tokens1 + SEP + tokens2 + SEP)
+    segment_ids = torch.LongTensor([0] * (len(tokens1) + 2) + [1] * (len(tokens2) + 1))
+    answer_core_mask = torch.LongTensor([0] * (lenanswer + 1))
+    return ids, segment_ids, answer_core_mask
 
-    label = torch.LongTensor(1).fill_(label)
+def vectorize(ex, tokenizer):
+    questionid, scenario, passage, question, answer1, answer2, label = ex
 
-    return [questionid, [passage, question, questioninfo, answer1, answer2, qanswer1, qanswer2], label]
+    answer1 = tokenizer.convert_tokens_to_ids(answer1)
+    passage = tokenizer.convert_tokens_to_ids(passage)
+    question = tokenizer.convert_tokens_to_ids(question)
+    answer2 = tokenizer.convert_tokens_to_ids(answer2)
 
-def tomask(texts):
+    CLS = tokenizer.convert_tokens_to_ids(["[CLS]"])
+    SEP = tokenizer.convert_tokens_to_ids(["[SEP]"])
+    answer1_info = to_idx_torch(answer1 + SEP + question, passage, CLS, SEP, len(answer1))
+    answer2_info = to_idx_torch(answer2 + SEP + question, passage, CLS, SEP, len(answer2))
+    qanswer1_info = to_idx_torch(answer1, question, CLS, SEP, len(answer1))
+    qanswer2_info = to_idx_torch(answer2, question, CLS, SEP, len(answer2))
+    label = torch.LongTensor([label])
+
+    return [questionid, [answer1_info, answer2_info, qanswer1_info, qanswer2_info], label]
+
+def tomask(info):
+    ids, segment_ids, answer_core_mask = info
     # Batch questions
-    max_length = max([q.size(0) for q in texts])
-    x = torch.LongTensor(len(texts), max_length).zero_()
-    x_mask = torch.ByteTensor(len(texts), max_length).fill_(1)
-    for i, q in enumerate(texts):
+    max_length = max([q.size(0) for q in ids])
+    x = torch.LongTensor(len(ids), max_length).zero_()
+    x_segments = torch.LongTensor(len(ids), max_length).zero_()
+    x_mask = torch.ByteTensor(len(ids), max_length).fill_(0)
+    x_core = torch.ByteTensor(len(ids), max_length).fill_(1)
+    for i, q in enumerate(ids):
         x[i, :q.size(0)].copy_(q)
-        x_mask[i, :q.size(0)].fill_(0)
-    return x, x_mask
+        x_segments[i, :q.size(0)].copy_(segment_ids[i])
+        x_mask[i, :q.size(0)].fill_(1)
+        x_core[i, :len(answer_core_mask[i])].copy_(answer_core_mask[i])
+
+    return x, x_segments, x_mask, x_core
 
 def batchify(batch):
     ids = [ex[0] for ex in batch]
-    input_num = len(batch[0][1])
-    inputs = [[ex[1][k] for ex in batch] for k in range(input_num)]
-    passage, question, questioninfo, answer1, answer2, qanswer1, qanswer2 = inputs
+    num1 = len(batch[0][1])
+    inputs = []
+    for i in range(num1):
+        num2 = len(batch[0][1][0])
+        info = [[ex[1][i][k] for ex in batch] for k in range(num2)]
+        inputs.append(info)
+
+    answer1_info, answer2_info, qanswer1_info, qanswer2_info = inputs
 
     targets = torch.cat([ex[2] for ex in batch])
 
-    passage, passage_mask = tomask(passage)
-    question, question_mask = tomask(question)
-    questioninfo, questioninfo_mask = tomask(questioninfo)
-    answer1, answer1_mask = tomask(answer1)
-    answer2, answer2_mask = tomask(answer2)
-    qanswer1, qanswer1_mask = tomask(qanswer1)
-    qanswer2, qanswer2_mask = tomask(qanswer2)
+    answer1_info = tomask(answer1_info)
+    answer2_info = tomask(answer2_info)
 
-    return [ids, [passage, passage_mask, question, question_mask, questioninfo, questioninfo_mask,
-                  answer1, answer1_mask, answer2, answer2_mask,
-                  qanswer1, qanswer1_mask, qanswer2, qanswer2_mask], targets]
+    qanswer1_info = tomask(qanswer1_info)
+    qanswer2_info = tomask(qanswer2_info)
+
+    return [ids, [answer1_info, answer2_info, qanswer1_info, qanswer2_info], targets]
