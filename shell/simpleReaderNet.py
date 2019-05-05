@@ -37,7 +37,8 @@ class ReaderNet(nn.Module):
 
         encoded_layers, pooled_output = self.bert(ids, segments, attention_mask=mask)
         self_encoder = self.answer_self_attn(encoded_layers[-1], core)
-        encoder = encoded_layers[-1][:, 0, :] + self_encoder
+        #encoder = encoded_layers[-1][:, 0, :] + self_encoder
+        encoder = self_encoder
         return encoder.view(encoder.size(0), 1, -1)
 
     def forward(self, inputs):
