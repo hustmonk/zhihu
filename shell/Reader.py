@@ -60,15 +60,7 @@ class Reader(object):
 
     def update(self, ex):
         ids, inputs, targets = ex
-
-        if self.use_cuda:
-            inputs = [e if e is None or torch.is_tensor(e) == False else Variable(e.cuda(async=True))
-                      for e in inputs]
-            targets = Variable(targets.cuda(async=True))
-
-        else:
-            inputs = [e if e is None or torch.is_tensor(e) == False else Variable(e) for e in inputs]
-            targets = Variable(targets)
+        inputs = self.cuda_variable(inputs)
 
         """Forward a batch of examples; step the optimizer to update weights."""
         if not self.optimizer:
@@ -98,16 +90,23 @@ class Reader(object):
         else:
             return loss.data[0], len(ids)
 
+    def cuda_variable(self, inputs):
+        outputs = []
+        for info in inputs:
+            if self.use_cuda:
+                info = [e if e is None or torch.is_tensor(e) == False else Variable(e.cuda(async=True))
+                          for e in info]
+            else:
+                info = [e if e is None or torch.is_tensor(e) == False else Variable(e) for e in info]
+            outputs.append(info)
+        return outputs
+
     # --------------------------------------------------------------------------
     # Prediction
     # --------------------------------------------------------------------------
 
     def predict(self, inputs):
-        if self.use_cuda:
-            inputs = [e if e is None or torch.is_tensor(e) == False else Variable(e.cuda(async=True))
-                      for e in inputs]
-        else:
-            inputs = [e if e is None or torch.is_tensor(e) == False else Variable(e) for e in inputs]
+        inputs = self.cuda_variable(inputs)
         # Eval mode
         self.network.eval()
 
