@@ -16,7 +16,8 @@ class ReaderNet(nn.Module):
         self.bert = BertModel.from_pretrained(args.bert_model)
         self.merge = 4
         self.linear = nn.Linear(int(args.embedding_dim), 1)
-        self.answer_self_attn = layers.LinearSeqAttn(args.embedding_dim)
+        self.answer_self_attn1 = layers.LinearSeqAttn(args.embedding_dim)
+        self.answer_self_attn2 = layers.LinearSeqAttn(args.embedding_dim)
 
         self.maskid = 100
 
@@ -32,18 +33,21 @@ class ReaderNet(nn.Module):
                     ids[i, j] = self.maskid
         return ids
 
-    def encode(self, info):
+    def encode(self, info, stype):
         ids, segments, mask, core = info
 
         encoded_layers, pooled_output = self.bert(ids, segments, attention_mask=mask)
-        self_encoder = self.answer_self_attn(encoded_layers[-1], core)
+        if stype == 1:
+            self_encoder = self.answer_self_attn1(encoded_layers[-1], core)
+        else:
+            self_encoder = self.answer_self_attn2(encoded_layers[-1], core)
         #encoder = encoded_layers[-1][:, 0, :] + self_encoder
         encoder = self_encoder
         return encoder.view(encoder.size(0), 1, -1)
 
     def forward(self, inputs):
-        encoder1 = self.encode(inputs[0]) + self.encode(inputs[2])
-        encoder2 = self.encode(inputs[1]) + self.encode(inputs[3])
+        encoder1 = self.encode(inputs[0], 1) + self.encode(inputs[2], 2)
+        encoder2 = self.encode(inputs[1], 1) + self.encode(inputs[3], 2)
 
         encoder = torch.cat([encoder1, encoder2], 1)
         scores = self.linear(encoder).view(-1, 2)
