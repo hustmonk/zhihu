@@ -34,6 +34,8 @@ class ReaderNet(nn.Module):
         return ids
 
     def encode(self, info, stype):
+        if stype == 2:
+            return 0
         ids, segments, mask, core = info
 
         encoded_layers, pooled_output = self.bert(ids, segments, attention_mask=mask)
