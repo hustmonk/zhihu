@@ -62,6 +62,10 @@ class Reader(object):
         ids, inputs, targets = ex
         inputs = self.cuda_variable(inputs)
 
+        if self.use_cuda:
+            targets = Variable(targets.cuda(async=True))
+        else:
+            targets = Variable(targets)
         """Forward a batch of examples; step the optimizer to update weights."""
         if not self.optimizer:
             raise RuntimeError('No optimizer set.')
