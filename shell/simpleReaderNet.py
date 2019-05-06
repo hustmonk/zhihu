@@ -39,8 +39,10 @@ class ReaderNet(nn.Module):
         ids, segments, mask, core, passage_mask = info
 
         encoded_layers, pooled_output = self.bert(ids, segments, attention_mask=mask)
+        last_encoded_layer = encoded_layers[-1]
+        last_encoded_layer = F.dropout(last_encoded_layer, p=0.3, training=self.training)
 
-        last_encoded_layers = self.linear(encoded_layers[-1])
+        last_encoded_layers = self.linear(last_encoded_layer)
         answer_encoder = self.answer_self_attn(last_encoded_layers, core).unsqueeze(1)
         passage_encoder = self.passage_self_attn(last_encoded_layers, passage_mask)
 
