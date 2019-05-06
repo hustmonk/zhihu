@@ -15,10 +15,11 @@ class ReaderNet(nn.Module):
         self.args = args
         self.bert = BertModel.from_pretrained(args.bert_model)
         self.merge = 4
-        self.linear = nn.Linear(args.embedding_dim, args.embedding_dim)
+        proj = 256
+        self.linear = nn.Linear(args.embedding_dim, 256)
 
-        self.answer_self_attn = layers.LinearSeqAttn(args.embedding_dim)
-        self.passage_self_attn = layers.LinearSeqAttn(args.embedding_dim)
+        self.answer_self_attn = layers.LinearSeqAttn(256)
+        self.passage_self_attn = layers.LinearSeqAttn(256)
 
         self.maskid = 100
 
