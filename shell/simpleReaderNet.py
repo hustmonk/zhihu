@@ -15,9 +15,10 @@ class ReaderNet(nn.Module):
         self.args = args
         self.bert = BertModel.from_pretrained(args.bert_model)
         self.merge = 4
-        self.linear = nn.Linear(int(args.embedding_dim), 1)
-        self.answer_self_attn1 = layers.LinearSeqAttn(args.embedding_dim)
-        self.answer_self_attn2 = layers.LinearSeqAttn(args.embedding_dim)
+        self.linear = nn.Linear(args.embedding_dim, args.embedding_dim)
+
+        self.answer_self_attn = layers.LinearSeqAttn(args.embedding_dim)
+        self.passage_self_attn = layers.LinearSeqAttn(args.embedding_dim)
 
         self.maskid = 100
 
@@ -33,25 +34,27 @@ class ReaderNet(nn.Module):
                     ids[i, j] = self.maskid
         return ids
 
-    def encode(self, info, stype):
-        if stype == 2:
-            return 0
-        ids, segments, mask, core = info
+    def encode(self, info):
+
+        ids, segments, mask, core, passage_mask = info
 
         encoded_layers, pooled_output = self.bert(ids, segments, attention_mask=mask)
-        if stype == 1:
-            self_encoder = self.answer_self_attn1(encoded_layers[-1], core)
-        else:
-            self_encoder = self.answer_self_attn2(encoded_layers[-1], core)
-        #encoder = encoded_layers[-1][:, 0, :] + self_encoder
-        encoder = self_encoder
-        return encoder.view(encoder.size(0), 1, -1)
+
+        last_encoded_layers = self.linear(encoded_layers[-1])
+        answer_encoder = self.answer_self_attn(last_encoded_layers, core).unsqueeze(1)
+        passage_encoder = self.passage_self_attn(last_encoded_layers, passage_mask)
+
+        return answer_encoder, passage_encoder
 
     def forward(self, inputs):
-        encoder1 = self.encode(inputs[0], 1) + self.encode(inputs[2], 2)
-        encoder2 = self.encode(inputs[1], 1) + self.encode(inputs[3], 2)
+        encoder1, passage_encoder1 = self.encode(inputs[0])
+        encoder2, passage_encoder2 = self.encode(inputs[1])
 
-        encoder = torch.cat([encoder1, encoder2], 1)
-        scores = self.linear(encoder).view(-1, 2)
+        passage_encoder = (passage_encoder1 + passage_encoder2)/2
+        answer1 = encoder1.bmm(passage_encoder.unsqueeze(2)).squeeze(2)
+        answer2 = encoder2.bmm(passage_encoder.unsqueeze(2)).squeeze(2)
+
+        scores = torch.cat([answer1, answer2], 1)
+
         return F.log_softmax(scores, dim=-1)
 
