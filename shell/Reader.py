@@ -36,7 +36,7 @@ class Reader(object):
         def ignore(n):
             ignores = ['bert.embeddings', 'bert.encoder.layer.0.', 'bert.encoder.layer.1.',
                        'bert.encoder.layer.2.', 'bert.encoder.layer.3.', 'bert.encoder.layer.4.', 'bert.encoder.layer.5.',
-                       'bert.encoder.layer.6.', 'bert.encoder.layer.7.', 'bert.encoder.layer.8.', 'bert.encoder.layer.9.'
+                       #'bert.encoder.layer.6.', 'bert.encoder.layer.7.', 'bert.encoder.layer.8.', 'bert.encoder.layer.9.'
                    ]
             for k in ignores:
                 if k in n[0]:
