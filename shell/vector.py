@@ -22,8 +22,8 @@ def vectorize(ex, tokenizer):
 
     CLS = tokenizer.convert_tokens_to_ids(["[CLS]"])
     SEP = tokenizer.convert_tokens_to_ids(["[SEP]"])
-    answer1_info = to_idx_torch(answer1 + SEP + question, passage, CLS, SEP, len(answer1))
-    answer2_info = to_idx_torch(answer2 + SEP + question, passage, CLS, SEP, len(answer2))
+    answer1_info = to_idx_torch(answer1, question + SEP + passage, CLS, SEP, len(answer1))
+    answer2_info = to_idx_torch(answer2, question + SEP + passage, CLS, SEP, len(answer2))
     qanswer1_info = to_idx_torch(answer1, question, CLS, SEP, len(answer1))
     qanswer2_info = to_idx_torch(answer2, question, CLS, SEP, len(answer2))
     label = torch.LongTensor([label])

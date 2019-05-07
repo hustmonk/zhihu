@@ -38,7 +38,7 @@ def initargs():
                          help='Train data iterations')
     runtime.add_argument('--batch-size', type=int, default=6,
                          help='Batch size for training')
-    runtime.add_argument('--test-batch-size', type=int, default=6,
+    runtime.add_argument('--test-batch-size', type=int, default=8,
                          help='Batch size during validation/testing')
     runtime.add_argument('--display-iter', type=int, default=10,
                          help='Batch size during validation/testing')

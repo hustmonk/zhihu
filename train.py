@@ -51,6 +51,8 @@ def validate(data_loader, model, epoch, data_type):
                 fout.write(id + "\n")
         if torch.cuda.is_available() == False:
             break
+        if len(preds) > 3000:
+            break
     fout.close()
     right = 1.0 * sum([1 for (p, t) in zip(preds, targets) if p == t]) / len(preds)
 
