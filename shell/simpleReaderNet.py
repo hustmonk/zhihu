@@ -16,10 +16,10 @@ class ReaderNet(nn.Module):
         self.bert = BertModel.from_pretrained(args.bert_model)
         self.merge = 4
         proj = 256
-        self.linear = nn.Linear(args.embedding_dim, 256)
+        self.linear = nn.Linear(args.embedding_dim, proj)
 
-        self.answer_self_attn = layers.LinearSeqAttn(256)
-        self.passage_self_attn = layers.LinearSeqAttn(256)
+        self.answer_self_attn = layers.LinearSeqAttn(proj)
+        self.passage_self_attn = layers.LinearSeqAttn(proj)
 
         self.maskid = 100
 
@@ -41,7 +41,7 @@ class ReaderNet(nn.Module):
 
         encoded_layers, pooled_output = self.bert(ids, segments, attention_mask=mask)
         last_encoded_layer = encoded_layers[-1]
-        last_encoded_layer = F.dropout(last_encoded_layer, p=0.3, training=self.training)
+        last_encoded_layer = F.dropout(last_encoded_layer, p=0.2, training=self.training)
 
         last_encoded_layers = self.linear(last_encoded_layer)
         answer_encoder = self.answer_self_attn(last_encoded_layers, core).unsqueeze(1)

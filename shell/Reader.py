@@ -35,7 +35,8 @@ class Reader(object):
         # thus it produce None grad that break apex
         def ignore(n):
             ignores = ['bert.embeddings', 'bert.encoder.layer.0.', 'bert.encoder.layer.1.',
-                       'bert.encoder.layer.2.', 'bert.encoder.layer.3.', 'bert.encoder.layer.4.', 'bert.encoder.layer.5.'
+                       'bert.encoder.layer.2.', 'bert.encoder.layer.3.', 'bert.encoder.layer.4.', 'bert.encoder.layer.5.',
+                       'bert.encoder.layer.6.', 'bert.encoder.layer.7.', 'bert.encoder.layer.8.', 'bert.encoder.layer.9.'
                    ]
             for k in ignores:
                 if k in n[0]:
@@ -48,7 +49,7 @@ class Reader(object):
             {'params': [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)], 'weight_decay': 0.01},
             {'params': [p for n, p in param_optimizer if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}
         ]
-        num_train_optimization_steps = 10000/args.batch_size * 10
+        num_train_optimization_steps = 10000/args.batch_size * 15
         self.optimizer = BertAdam(optimizer_grouped_parameters,
                              lr=args.learning_rate,
                              warmup=args.warmup_proportion,
